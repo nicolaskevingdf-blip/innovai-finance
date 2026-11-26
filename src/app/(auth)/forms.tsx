@@ -18,7 +18,7 @@ export function SignInForm({ next }: { next?: string }) {
 export function SignUpForm() {
   return (
     <ActionForm action={signUp} keepOpen>
-      {(s) => s?.ok ? null : (
+      {(s) => s?.ok ? <Link href="/entrar" className="btn-primary w-full">Ir para o login</Link> : (
         <>
           <label className="block"><span className="label">Seu nome</span><input name="name" autoComplete="name" required className="input" /></label>
           <label className="block"><span className="label">E-mail</span><input name="email" type="email" autoComplete="email" required className="input" /></label>

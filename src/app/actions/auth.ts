@@ -13,7 +13,12 @@ export async function signIn(_: ActionState, fd: FormData): Promise<ActionState>
   if (!p.success) return fail(p.error);
   const sb = await createClient();
   const { error } = await sb.auth.signInWithPassword(p.data);
-  if (error) return { error: "E-mail ou senha incorretos." };
+  if (error) {
+    if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message))
+      return { error: "Seu e-mail ainda não foi confirmado. Abra o e-mail de confirmação que enviamos e clique no link; depois volte aqui e entre normalmente." };
+    if (error.status === 429) return { error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." };
+    return { error: "E-mail ou senha incorretos." };
+  }
   redirect(safeNext(f.next));
 }
 
@@ -28,8 +33,14 @@ export async function signUp(_: ActionState, fd: FormData): Promise<ActionState>
   const sb = await createClient();
   const origin = (await headers()).get("origin") ?? "";
   const { data, error } = await sb.auth.signUp({ email: p.data.email, password: p.data.password, options: { data: { full_name: p.data.name }, emailRedirectTo: `${origin}/auth/callback?next=/onboarding` } });
-  if (error) return { error: /registered/i.test(error.message) ? "Este e-mail já possui conta." : error.message };
-  if (!data.session) return { ok: true, message: "Enviamos um link de confirmação para o seu e-mail." };
+  if (error) {
+    if (/registered/i.test(error.message)) return { error: "Este e-mail já possui conta." };
+    if (error.status === 429 || /rate limit/i.test(error.message)) return { error: "Muitos cadastros neste momento. Aguarde alguns minutos e tente novamente." };
+    return { error: "Não foi possível criar a conta agora. Tente novamente." };
+  }
+  // Supabase devolve usuário sem identidades quando o e-mail já existe (proteção contra enumeração)
+  if (data.user && data.user.identities?.length === 0) return { error: "Este e-mail já possui conta." };
+  if (!data.session) return { ok: true, message: "Conta criada! Enviamos um link de confirmação para o seu e-mail. Clique nele e depois volte para entrar com seu e-mail e senha." };
   redirect("/onboarding");
 }
 
