@@ -6,6 +6,7 @@ export function balanceEffect(t: Tx, accountId: string): number {
   if (t.status !== "paid") return 0;
   switch (t.type) {
     case "income":
+    case "refund": // estorno em conta devolve o dinheiro; no cartão (accountId nulo) não mexe no saldo
       return t.accountId === accountId ? t.amount : 0;
     case "expense":
       return t.accountId === accountId ? -t.amount : 0; // compras no cartão têm accountId nulo
@@ -27,8 +28,8 @@ export function accountBalance(acc: Account, txs: Tx[], until?: ISODate): number
   return b;
 }
 
-/** Receita/despesa "real" para relatórios: exclui transferências, ajustes e pagamentos de fatura. */
-export const isReportable = (t: Tx) => (t.type === "income" || t.type === "expense") && t.status !== "canceled";
+/** Receita/despesa "real" para relatórios: exclui transferências, ajustes e pagamentos de fatura. Estornos abatem despesas. */
+const isReportable = (t: Tx) => (t.type === "income" || t.type === "expense" || t.type === "refund") && t.status !== "canceled";
 
 export interface PeriodSummary {
   income: number;
@@ -48,11 +49,13 @@ export function summarize(txs: Tx[], from: ISODate, to: ISODate, opts: { include
     if (!isReportable(t)) continue;
     if (!opts.includePending && t.status !== "paid") continue;
     if (t.competenceDate < from || t.competenceDate > to) continue;
-    if (opts.kind && t.type !== opts.kind) continue;
-    if (t.type === "income") out.income += t.amount;
-    else out.expense += t.amount;
-    if (t.type === "expense" || opts.kind === "income") {
-      out.byCategory.set(t.categoryId, (out.byCategory.get(t.categoryId) ?? 0) + t.amount);
+    const kind = t.type === "refund" ? "expense" : t.type;
+    if (opts.kind && kind !== opts.kind) continue;
+    const signed = t.type === "refund" ? -t.amount : t.amount; // estorno reduz a despesa da categoria
+    if (kind === "income") out.income += signed;
+    else out.expense += signed;
+    if (kind === "expense" || opts.kind === "income") {
+      out.byCategory.set(t.categoryId, (out.byCategory.get(t.categoryId) ?? 0) + signed);
     }
     out.count++;
   }
@@ -64,11 +67,11 @@ export function summarize(txs: Tx[], from: ISODate, to: ISODate, opts: { include
 export function totalsByGroup(txs: Tx[], categories: Map<string, Category>, from: ISODate, to: ISODate, includePending = true) {
   const g: Record<CategoryGroup | "uncategorized", number> = { revenue: 0, cost: 0, fixed: 0, variable: 0, investment: 0, withdrawal: 0, personal: 0, other: 0, uncategorized: 0 };
   for (const t of txs) {
-    if (t.type !== "expense" || t.status === "canceled") continue;
+    if ((t.type !== "expense" && t.type !== "refund") || t.status === "canceled") continue;
     if (!includePending && t.status !== "paid") continue;
     if (t.competenceDate < from || t.competenceDate > to) continue;
     const c = t.categoryId ? categories.get(t.categoryId) : undefined;
-    g[c?.grp ?? "uncategorized"] += t.amount;
+    g[c?.grp ?? "uncategorized"] += t.type === "refund" ? -t.amount : t.amount;
   }
   return g;
 }
@@ -79,8 +82,31 @@ export function cashMovements(txs: Tx[], from: ISODate, to: ISODate) {
   for (const t of txs) {
     if (t.status !== "paid" || !t.paidAt || t.paidAt < from || t.paidAt > to) continue;
     if (t.type === "income" && t.accountId) inflow += t.amount;
+    else if (t.type === "refund" && t.accountId) outflow -= t.amount; // dinheiro devolvido reduz a saída
     else if (t.type === "expense" && t.accountId) outflow += t.amount;
     else if (t.type === "card_payment") outflow += t.amount;
   }
   return { inflow, outflow, net: inflow - outflow };
+}
+
+/**
+ * Fluxos efetivados de uma conta no período (por data de pagamento).
+ * Fonte única para o detalhe da conta e o relatório por conta.
+ * Estornos em conta reduzem as saídas; pagamentos de fatura contam como saída.
+ */
+export function accountFlows(txs: Tx[], accountId: string, from: ISODate, to: ISODate) {
+  const r = { income: 0, expense: 0, transferIn: 0, transferOut: 0 };
+  for (const t of txs) {
+    if (t.status !== "paid" || !t.paidAt || t.paidAt < from || t.paidAt > to) continue;
+    if (t.type === "transfer") {
+      if (t.toAccountId === accountId) r.transferIn += t.amount;
+      if (t.accountId === accountId) r.transferOut += t.amount;
+      continue;
+    }
+    if (t.accountId !== accountId) continue;
+    if (t.type === "income") r.income += t.amount;
+    else if (t.type === "expense" || t.type === "card_payment") r.expense += t.amount;
+    else if (t.type === "refund") r.expense -= t.amount;
+  }
+  return r;
 }

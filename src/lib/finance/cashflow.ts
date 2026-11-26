@@ -18,10 +18,7 @@ export function forecastItems(txs: Tx[], cards: Card[], today: ISODate, until: I
   const items: FlowItem[] = [];
   for (const t of txs) {
     if (t.status !== "pending" || t.cardId) continue;
-    if (t.type !== "income" && t.type !== "expense") continue;
-    if (!t.accountId && t.type === "expense") {
-      // sem conta definida ainda conta como compromisso
-    }
+    if (t.type !== "income" && t.type !== "expense") continue; // pendências sem conta definida também contam
     const due = t.dueDate ?? t.date;
     if (due > until) continue;
     const overdue = due < today;

@@ -79,5 +79,13 @@ export function isISODate(s: unknown): s is ISODate {
   return m >= 1 && m <= 12 && d >= 1 && d <= daysInMonth(y, m);
 }
 
+/** Data/hora de um timestamp (timestamptz) no fuso de Brasília: "26/11/2026 21:40". */
+export function fmtDateTime(ts: string | null | undefined, withTime = true): string {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric", ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}) }).format(d).replace(",", "");
+}
+
 /** Primeira letra maiúscula ("novembro de 2026" → "Novembro de 2026"). */
 export const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);

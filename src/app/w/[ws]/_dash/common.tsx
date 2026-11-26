@@ -4,6 +4,7 @@ import { Badge, Money } from "@/components/ui";
 import { fmtDayMonth, type ISODate } from "@/lib/finance/dates";
 import { addMonths, monthEnd, monthStart, fmtMonth } from "@/lib/finance/dates";
 import { summarize } from "@/lib/finance/ledger";
+import { createClient } from "@/lib/supabase/server";
 import type { Tx } from "@/lib/finance/types";
 
 export function monthlySeries(txs: Tx[], today: ISODate, n = 6) {
@@ -38,7 +39,6 @@ export function UpcomingList({ items, base, empty }: { items: { date: string; la
 
 /** Primeiro nome do usuário para a saudação (perfil do Supabase). */
 export async function firstName(userId: string) {
-  const { createClient } = await import("@/lib/supabase/server");
   const sb = await createClient();
   const { data } = await sb.from("profiles").select("full_name").eq("id", userId).maybeSingle();
   return data?.full_name?.trim().split(/\s+/)[0] ?? null;

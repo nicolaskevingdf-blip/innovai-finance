@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatBRL } from "@/lib/finance/money";
 
-export { clsx as cx };
 
 export function Money({ c, signed, className, tone }: { c: number; signed?: boolean; className?: string; tone?: "auto" | "none" }) {
   const color = tone === "auto" ? (c > 0 ? "text-lime" : c < 0 ? "text-neg" : "") : "";
@@ -124,20 +123,6 @@ export function Tabs({ items, active }: { items: { href: string; label: string; 
       ))}
     </nav>
   );
-}
-
-export function Field({ label, children, hint, error, className }: { label: string; children: ReactNode; hint?: ReactNode; error?: string; className?: string }) {
-  return (
-    <label className={clsx("block", className)}>
-      <span className="label">{label}</span>
-      {children}
-      {error ? <span className="mt-1 block text-[12.5px] text-neg">{error}</span> : hint ? <span className="mt-1 block text-[12.5px] text-faint">{hint}</span> : null}
-    </label>
-  );
-}
-
-export function Row({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx("flex items-center gap-3 border-t border-line px-4 py-3.5 first:border-t-0 sm:px-5", className)}>{children}</div>;
 }
 
 export function Notice({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "warn" | "lime" }) {

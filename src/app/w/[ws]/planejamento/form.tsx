@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { saveBudgets } from "@/app/actions/finance";
+import { saveBudgets } from "@/app/actions/planning";
 
 export function BudgetForm({ ws, month, rows, income, savings }: { ws: string; month: string; rows: { id: string; name: string; amount: number | null; avg: number | null }[]; income: number; savings: number }) {
   const v = (c: number | null) => (c ? (c / 100).toFixed(2).replace(".", ",") : "");

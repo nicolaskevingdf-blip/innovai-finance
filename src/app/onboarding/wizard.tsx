@@ -1,5 +1,6 @@
 "use client";
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ActionState } from "@/app/actions/_util";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Building2, Loader2, User } from "lucide-react";
 import clsx from "clsx";
@@ -30,14 +31,22 @@ export function Wizard({ initialKind, fullName, first, hasPersonal }: { initialK
   const router = useRouter();
   const [kind, setKind] = useState<Kind | null>(initialKind);
   const [step, setStep] = useState(initialKind ? 1 : 0);
-  const [state, action, pending] = useActionState(createWorkspace, null);
+  const [state, setState] = useState<ActionState>(null);
+  const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const submit = () => { if (pending || !formRef.current) return; const fd = new FormData(formRef.current); startTransition(() => action(fd)); };
+  // Chamada direta: libera o botão quando o servidor responde e impede criar o ambiente duas vezes
+  const submit = async () => {
+    if (pending || !formRef.current) return;
+    setPending(true);
+    try { setState(await createWorkspace(null, new FormData(formRef.current))); }
+    catch { setState({ error: "Não foi possível concluir. Verifique sua conexão e tente novamente." }); }
+    finally { setPending(false); }
+  };
   useEffect(() => { if (state?.ok) router.replace(`/w/${(state.data as { id: string }).id}`); }, [state, router]);
   const steps = 3;
 
   return (
-    <form ref={formRef} className="flex flex-1 flex-col" onSubmit={(e) => { e.preventDefault(); if (step === steps) submit(); else if (step > 0) setStep((s) => s + 1); }}>
+    <form ref={formRef} method="post" className="flex flex-1 flex-col" onSubmit={(e) => { e.preventDefault(); if (step === steps) void submit(); else if (step > 0) setStep((s) => s + 1); }}>
       <input type="hidden" name="kind" value={kind ?? ""} />
       {step > 0 && (
         <div className="mb-8 flex gap-1.5">{Array.from({ length: steps }, (_, i) => <div key={i} className={clsx("h-1 flex-1 rounded-full", i < step ? "bg-lime" : "bg-surface-3")} />)}</div>
@@ -129,7 +138,7 @@ export function Wizard({ initialKind, fullName, first, hasPersonal }: { initialK
           {step < steps ? (
             <button key="next" type="button" className="btn-primary" onClick={() => setStep((s) => s + 1)}>Continuar <ArrowRight size={18} /></button>
           ) : (
-            <button key="submit" type="button" className="btn-primary" disabled={pending} onClick={submit}>{pending ? <><Loader2 size={16} className="animate-spin" /> Preparando…</> : "Começar a usar"}</button>
+            <button key="submit" type="button" className="btn-primary" disabled={pending} onClick={() => void submit()}>{pending ? <><Loader2 size={16} className="animate-spin" /> Preparando…</> : "Começar a usar"}</button>
           )}
         </div>
       )}

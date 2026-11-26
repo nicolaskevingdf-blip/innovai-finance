@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "../supabase/server";
 
 /**
  * A IA generativa é OPCIONAL. Sem ANTHROPIC_API_KEY, a plataforma usa o
@@ -20,4 +21,15 @@ export const FALLBACK = { betas: ["server-side-fallback-2026-07-01"] as Anthropi
 
 export function textOf(msg: Anthropic.Beta.BetaMessage): string {
   return msg.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+}
+
+/** Limite diário de chamadas à IA generativa por usuário (controle de custo). Padrão: 60. */
+export const AI_DAILY_LIMIT = Math.max(0, Number(process.env.AI_DAILY_LIMIT ?? 60) || 0);
+
+/** Consome 1 unidade da cota diária do usuário no banco. Retorna false se o limite foi atingido. */
+export async function consumeQuota(): Promise<boolean> {
+  const sb = await createClient();
+  const { data, error } = await sb.rpc("consume_ai_quota", { p_limit: AI_DAILY_LIMIT });
+  if (error) { console.error("consumeQuota", error.code); return false; }
+  return data === true;
 }

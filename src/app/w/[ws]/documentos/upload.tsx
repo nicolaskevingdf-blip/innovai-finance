@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, Submit } from "@/components/client";
-import { uploadAttachment } from "@/app/actions/finance";
+import { uploadAttachment } from "@/app/actions/documents";
 
 export function UploadForm({ ws }: { ws: string }) {
   return (

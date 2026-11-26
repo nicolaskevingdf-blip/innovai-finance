@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, monthEnd, weekStart, isISODate } from "../dates";
+import { addMonths, fmtDateTime, monthEnd, todayISO, weekStart, isISODate } from "../dates";
 import { parseMoneyInput, toCents, formatBRL } from "../money";
 import { buildInvoices, cardLimit, invoiceDueDate, invoiceMonthFor, planCardPurchase, splitInstallments } from "../cards";
 import { accountBalance, cashMovements, summarize } from "../ledger";
@@ -257,5 +257,87 @@ describe("parser de texto", () => {
   it("associa categoria existente", () => {
     const cats = [{ id: "1", name: "Combustivel", kind: "expense" }, { id: "2", name: "Lazer", kind: "expense" }];
     expect(matchCategory("Combustível", "expense", cats)?.id).toBe("1");
+  });
+});
+
+describe("estornos", () => {
+  it("estorno no cartão abate fatura e libera limite, sem mexer no saldo bancário", () => {
+    const compra = tx({ cardId: "c1", accountId: null, invoiceMonth: "2026-12-01", competenceDate: "2026-12-01", amount: 50000, categoryId: "roupa" });
+    const estorno = tx({ type: "refund", cardId: "c1", accountId: null, invoiceMonth: "2026-12-01", competenceDate: "2026-12-01", amount: 20000, categoryId: "roupa", parentId: compra.id });
+    const txs = [compra, estorno];
+    expect(accountBalance(acc, txs)).toBe(100000);
+    const inv = buildInvoices(card, txs, "2026-11-20");
+    expect(inv[0].total).toBe(30000);
+    expect(cardLimit(card, txs).used).toBe(30000);
+    const s = summarize(txs, "2026-12-01", "2026-12-31");
+    expect(s.income).toBe(0); // estorno nunca vira receita
+    expect(s.expense).toBe(30000);
+    expect(s.byCategory.get("roupa")).toBe(30000);
+  });
+  it("estorno em conta devolve saldo e reduz a despesa da categoria", () => {
+    const compra = tx({ amount: 10000, categoryId: "merc", date: "2026-11-05" });
+    const estorno = tx({ type: "refund", amount: 4000, categoryId: "merc", date: "2026-11-07" });
+    const txs = [compra, estorno];
+    expect(accountBalance(acc, txs)).toBe(100000 - 10000 + 4000);
+    const s = summarize(txs, "2026-11-01", "2026-11-30");
+    expect(s).toMatchObject({ income: 0, expense: 6000 });
+    expect(cashMovements(txs, "2026-11-01", "2026-11-30")).toEqual({ inflow: 0, outflow: 6000, net: -6000 });
+  });
+  it("estorno total zera a fatura e conta como paga", () => {
+    const compra = tx({ cardId: "c1", accountId: null, invoiceMonth: "2026-12-01", competenceDate: "2026-12-01", amount: 9900 });
+    const estorno = tx({ type: "refund", cardId: "c1", accountId: null, invoiceMonth: "2026-12-01", competenceDate: "2026-12-01", amount: 9900 });
+    const inv = buildInvoices(card, [compra, estorno], "2026-11-20")[0];
+    expect(inv.total).toBe(0);
+    expect(inv.remaining).toBe(0);
+  });
+  it("estorno entra nos grupos gerenciais (resultado empresarial)", () => {
+    const cats: Category[] = [{ id: "ins", name: "Insumos", kind: "expense", grp: "cost", parentId: null, icon: null, color: null }];
+    const txs = [tx({ categoryId: "ins", amount: 30000 }), tx({ type: "refund", categoryId: "ins", amount: 5000 })];
+    const b = businessSnapshot({ accounts: [acc], txs, categories: cats, today: "2026-11-15" });
+    expect(b.costs).toBe(25000);
+    expect(b.revenue).toBe(0);
+  });
+});
+
+describe("integridade de cálculo", () => {
+  it("editar/excluir: o saldo é sempre recalculado a partir dos lançamentos (sem saldo acumulado armazenado)", () => {
+    const a = tx({ type: "income", amount: 5000 }), b2 = tx({ amount: 2000 });
+    expect(accountBalance(acc, [a, b2])).toBe(103000);
+    expect(accountBalance(acc, [a])).toBe(105000); // após excluir a despesa
+    expect(accountBalance(acc, [{ ...a, amount: 7000 }, b2])).toBe(105000); // após editar a receita
+  });
+  it("cancelado não afeta saldo nem relatórios", () => {
+    const t = tx({ status: "canceled", amount: 999999 });
+    expect(accountBalance(acc, [t])).toBe(100000);
+    expect(summarize([t], "2026-11-01", "2026-11-30", { includePending: true }).expense).toBe(0);
+  });
+  it("datas não sofrem deslocamento de fuso", () => {
+    expect(todayISO("America/Sao_Paulo", new Date("2026-11-27T02:30:00Z"))).toBe("2026-11-26"); // 23h30 em Brasília
+    expect(fmtDateTime("2026-11-27T00:40:00Z")).toBe("26/11/2026 21:40");
+  });
+});
+
+describe("upload: tipo real do arquivo", () => {
+  it("reconhece assinaturas válidas e rejeita disfarces", async () => {
+    const { sniffType } = await import("../../files");
+    const b = (...x: number[]) => new Uint8Array([...x, ...Array(16).fill(0)]);
+    expect(sniffType(b(0x25, 0x50, 0x44, 0x46))).toBe("application/pdf");
+    expect(sniffType(b(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe("image/png");
+    expect(sniffType(b(0xff, 0xd8, 0xff, 0xe0))).toBe("image/jpeg");
+    expect(sniffType(new TextEncoder().encode("<html><script>alert(1)</script>"))).toBeNull(); // HTML disfarçado de PDF
+    expect(sniffType(new TextEncoder().encode("MZ\x90\x00executavel......"))).toBeNull();
+  });
+});
+
+describe("fluxos por conta (fonte única para telas e relatórios)", () => {
+  it("considera transferências, fatura e estornos", async () => {
+    const { accountFlows } = await import("../ledger");
+    const txs = [
+      tx({ type: "income", amount: 10000 }), tx({ amount: 3000 }), tx({ type: "refund", amount: 1000 }),
+      tx({ type: "card_payment", cardId: "c1", invoiceMonth: "2026-11-01", amount: 2000 }),
+      tx({ type: "transfer", accountId: "a1", toAccountId: "a2", amount: 500 }), tx({ type: "transfer", accountId: "a2", toAccountId: "a1", amount: 200 }),
+      tx({ amount: 777, status: "pending" }),
+    ];
+    expect(accountFlows(txs, "a1", "2026-11-01", "2026-11-30")).toEqual({ income: 10000, expense: 4000, transferIn: 200, transferOut: 500 });
   });
 });

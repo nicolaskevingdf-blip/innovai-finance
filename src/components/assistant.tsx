@@ -41,7 +41,7 @@ export function Assistant({ ws, suggestions, mode }: { ws: string; suggestions: 
         {busy && <div className="flex items-center gap-2 text-[13px] text-muted"><Loader2 size={14} className="animate-spin" /> Analisando seus dados…</div>}
         <div ref={end} />
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); ask(q); }} className="flex gap-2 border-t border-line bg-surface p-3">
+      <form method="post" onSubmit={(e) => { e.preventDefault(); ask(q); }} className="flex gap-2 border-t border-line bg-surface p-3">
         <input value={q} onChange={(e) => setQ(e.target.value)} maxLength={500} placeholder={mode === "claude" ? "Pergunte qualquer coisa sobre suas finanças…" : "Ex.: quanto gastei com alimentação este mês?"} className="input flex-1" />
         <button disabled={busy || !q.trim()} className="btn-primary w-12 shrink-0 rounded-full px-0 sm:w-11" aria-label="Enviar"><ArrowUp size={18} /></button>
       </form>

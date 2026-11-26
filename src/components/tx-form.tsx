@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Loader2, Mic, MicOff, Sparkles, Wand2 } from "lucide-react";
 import { ActionForm, Submit } from "./client";
-import { createTransaction } from "@/app/actions/finance";
+import { createTransaction } from "@/app/actions/transactions";
 import { interpretEntry, type EntrySuggestion } from "@/app/actions/ai";
 import { formatBRL } from "@/lib/finance/money";
 import { fmtDate } from "@/lib/finance/dates";

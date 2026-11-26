@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, Submit } from "@/components/client";
-import { saveContact } from "@/app/actions/finance";
+import { saveContact } from "@/app/actions/business";
 
 export function ContactForm({ ws, kind, c }: { ws: string; kind: "client" | "supplier"; c?: { id: string; name: string; phone: string | null; email: string | null; document: string | null; notes: string | null } }) {
   return (

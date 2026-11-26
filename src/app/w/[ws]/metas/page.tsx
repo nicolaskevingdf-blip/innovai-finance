@@ -7,7 +7,7 @@ import { ConfirmSubmit, Sheet } from "@/components/client";
 import { addMonths, fmtDate, fmtMonth, monthEnd, monthStart, cap } from "@/lib/finance/dates";
 import { summarize } from "@/lib/finance/ledger";
 import { formatBRL } from "@/lib/finance/money";
-import { archiveGoal } from "@/app/actions/finance";
+import { archiveGoal } from "@/app/actions/planning";
 import { ContributionForm, GoalForm } from "./forms";
 
 export const metadata = { title: "Metas" };

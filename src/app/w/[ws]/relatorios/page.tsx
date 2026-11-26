@@ -2,13 +2,12 @@ import { getWorkspace } from "@/lib/data/workspace";
 import { loadLedger } from "@/lib/data/ledger";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, Empty, Money, PageHeader } from "@/components/ui";
-import { MonthlyBars } from "@/components/charts";
+import { MonthlyBars } from "@/components/charts-lazy";
 import { addDays, addMonths, diffDays, fmtDate, fmtMonth, isISODate, monthEnd, monthsBetween, monthStart } from "@/lib/finance/dates";
-import { cashMovements, summarize, totalsByGroup } from "@/lib/finance/ledger";
+import { accountFlows, cashMovements, summarize, totalsByGroup } from "@/lib/finance/ledger";
 import { buildInvoices } from "@/lib/finance/cards";
 import { obligationTotals } from "@/lib/finance/obligations";
 import { toCents } from "@/lib/finance/money";
-import type { Tx } from "@/lib/finance/types";
 import { PrintButton } from "./print";
 
 export const metadata = { title: "Relatórios" };
@@ -129,7 +128,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       </>
     );
   } else {
-    const byAcc = L.accounts.map((a) => { let i = 0, o = 0; for (const t of L.txs as Tx[]) { if (t.status !== "paid" || !t.paidAt || t.paidAt < from || t.paidAt > to) continue; if (t.type === "income" && t.accountId === a.id) i += t.amount; if ((t.type === "expense" || t.type === "card_payment") && t.accountId === a.id) o += t.amount; } return { a, i, o }; }).filter((x) => x.i || x.o);
+    const byAcc = L.accounts.map((a) => { const f = accountFlows(L.txs, a.id, from, to); return { a, i: f.income, o: f.expense }; }).filter((x) => x.i || x.o);
     const cardRows = L.cards.map((c) => { const inv = buildInvoices(c, L.txs, L.today); const inPeriod = inv.filter((x) => x.month >= monthStart(from) && x.month <= to).reduce((t, x) => t + x.total, 0); const futureInst = inv.filter((x) => x.month > to).reduce((t, x) => t + x.remaining, 0); return { c, inPeriod, futureInst }; });
     personal = (
       <div className="mt-4 grid gap-4 md:grid-cols-2">

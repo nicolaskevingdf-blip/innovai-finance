@@ -36,10 +36,3 @@ export function parseMoneyInput(raw: string): Cents | null {
   const c = Math.round(Number(s) * 100);
   return Number.isFinite(c) ? (neg ? -c : c) : null;
 }
-
-export const sum = (xs: Cents[]): Cents => xs.reduce((a, b) => a + b, 0);
-
-export function pct(part: number, whole: number): number | null {
-  if (!whole) return null;
-  return (part / whole) * 100;
-}

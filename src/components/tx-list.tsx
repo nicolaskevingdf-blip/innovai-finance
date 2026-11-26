@@ -17,7 +17,7 @@ export function TxList({ rows, refs, groupBy = "date", emptyText }: { rows: TxRo
   return (
     <div className="px-2 py-2">
       {[...groups.entries()].map(([d, items]) => {
-        const net = items.reduce((s, r) => s + (r.status === "canceled" ? 0 : r.type === "income" ? r.amount : r.type === "expense" || r.type === "card_payment" ? -r.amount : 0), 0);
+        const net = items.reduce((s, r) => s + (r.status === "canceled" ? 0 : r.type === "income" || r.type === "refund" ? r.amount : r.type === "expense" || r.type === "card_payment" ? -r.amount : 0), 0);
         const [y, m, day] = d.split("-").map(Number);
         return (
           <section key={d} className="mb-1">

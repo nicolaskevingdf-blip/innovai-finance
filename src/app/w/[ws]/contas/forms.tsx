@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { adjustBalance, saveAccount } from "@/app/actions/finance";
+import { adjustBalance, saveAccount } from "@/app/actions/accounts";
 import { ACCOUNT_TYPES } from "@/lib/templates";
 
 export function AccountForm({ ws, a }: { ws: string; a?: { id: string; name: string; type: string; institution: string | null } }) {

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { X, Loader2, Check } from "lucide-react";
 import clsx from "clsx";
 import type { ActionState } from "@/app/actions/_util";
@@ -52,8 +52,22 @@ export function Submit({ children, className, pendingText = "Salvando…", inlin
 }
 
 /** Formulário com feedback de erro/sucesso. Fecha o sheet ao concluir com sucesso. */
+/** Erros de navegação do Next (redirect/notFound) precisam seguir adiante para o roteador tratar. */
+const isNavigationError = (e: unknown) => {
+  const d = (e as { digest?: unknown })?.digest;
+  return typeof d === "string" && (d.startsWith("NEXT_REDIRECT") || d.startsWith("NEXT_HTTP_ERROR_FALLBACK") || d === "NEXT_NOT_FOUND");
+};
+
+/**
+ * Formulário com feedback de erro/sucesso. Fecha o sheet ao concluir com sucesso.
+ * A ação é chamada diretamente e o estado "salvando" termina assim que o SERVIDOR responde —
+ * não depende do fim da atualização visual da página (evita botão travado e lançamentos duplicados).
+ * Também impede envio duplo e mantém os campos preenchidos quando há erro de validação.
+ */
 export function ActionForm({ action, children, className, keepOpen, onDone, resetOnSuccess }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; children: ReactNode | ((s: ActionState) => ReactNode); className?: string; keepOpen?: boolean; onDone?: (s: ActionState) => void; resetOnSuccess?: boolean }) {
-  const [state, formAction, pending] = useActionState(action, null);
+  const [state, setState] = useState<ActionState>(null);
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
   const sheet = useSheet();
   const ref = useRef<HTMLFormElement>(null);
   const feedback = useRef<HTMLDivElement>(null);
@@ -65,10 +79,23 @@ export function ActionForm({ action, children, className, keepOpen, onDone, rese
       if (!keepOpen && sheet) { const t = setTimeout(sheet.close, 450); return () => clearTimeout(t); }
     }
   }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  const submit = async (fd: FormData) => {
+    if (inFlight.current) return; // bloqueia envio duplo (duplo toque/clique)
+    inFlight.current = true;
+    setPending(true);
+    try {
+      setState(await action(state, fd));
+    } catch (e) {
+      if (isNavigationError(e)) throw e;
+      setState({ error: "Não foi possível concluir. Verifique sua conexão e tente novamente." });
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
+  };
   return (
-    // Envio manual (em vez de action={...}) para o React não limpar os campos quando há erro de validação.
-    <form ref={ref} className={clsx("space-y-4", className)} noValidate
-      onSubmit={(e) => { e.preventDefault(); if (pending) return; const fd = new FormData(e.currentTarget); startTransition(() => formAction(fd)); }}>
+    <form ref={ref} method="post" className={clsx("space-y-4", className)} noValidate aria-busy={pending}
+      onSubmit={(e) => { e.preventDefault(); void submit(new FormData(e.currentTarget)); }}>
       <PendingCtx.Provider value={pending}>{typeof children === "function" ? children(state) : children}</PendingCtx.Provider>
       <div ref={feedback} />
       {state?.error && <p role="alert" className="rounded-xl border border-neg/25 bg-neg-soft px-3.5 py-2.5 text-[13.5px] text-neg">{state.error}</p>}

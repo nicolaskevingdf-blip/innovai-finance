@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { addContribution, saveGoal } from "@/app/actions/finance";
+import { addContribution, saveGoal } from "@/app/actions/planning";
 
 const KINDS = [["emergency", "Reserva de emergência"], ["travel", "Viagem"], ["vehicle", "Veículo"], ["home", "Casa"], ["wedding", "Casamento"], ["purchase", "Compra de produto"], ["investment", "Investimento"], ["business", "Reinvestimento no negócio"], ["custom", "Personalizada"]];
 

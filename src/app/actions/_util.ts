@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { parseMoneyInput } from "@/lib/finance/money";
 import { isISODate } from "@/lib/finance/dates";
@@ -32,6 +33,7 @@ export function fail(e: unknown): ActionState {
   if (/row-level security/i.test(msg)) return { error: "Você não tem permissão para esta ação neste ambiente." };
   if (/violates foreign key|restrict/i.test(msg)) return { error: "Este item está em uso por outros registros e não pode ser excluído. Arquive-o." };
   if (/duplicate key/i.test(msg)) return { error: "Já existe um registro com esses dados." };
+  if (/Limite de \d+ usuários/.test(msg)) return { error: msg + ". Remova um usuário ou convite pendente, ou mude de plano." };
   return { error: msg.length < 160 ? msg : "Não foi possível concluir a operação." };
 }
 
@@ -42,3 +44,7 @@ export function check<T>(r: { data: T; error: { message: string } | null }): Exc
   if (r.error) throw new Error(r.error.message);
   return r.data as Exclude<T, null>;
 }
+
+/** Revalida todas as páginas de um ambiente após uma alteração. */
+export const refresh = (ws: string) => revalidatePath(`/w/${ws}`, "layout");
+export const PM = z.enum(["cash", "pix", "debit", "credit", "boleto", "transfer", "app", "other"]).optional().or(z.literal("").transform(() => undefined));

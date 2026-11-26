@@ -161,6 +161,13 @@ export async function deleteWorkspace(fd: FormData) {
   const sb = await createClient();
   const { data: ws } = await sb.from("workspaces").select("name").eq("id", f.ws).single();
   if (!ws || ws.name !== f.confirm) redirect(`/w/${f.ws}/configuracoes?erro=confirmacao`);
+  // Remove os documentos do armazenamento antes de apagar o ambiente (evita arquivos órfãos — LGPD)
+  for (;;) {
+    const { data: files } = await sb.storage.from("documents").list(f.ws, { limit: 100 });
+    if (!files?.length) break;
+    const { error } = await sb.storage.from("documents").remove(files.map((x) => `${f.ws}/${x.name}`));
+    if (error) break;
+  }
   check(await sb.from("workspaces").delete().eq("id", f.ws).select("id"));
   redirect("/inicio");
 }

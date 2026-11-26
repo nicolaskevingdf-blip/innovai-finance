@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, Submit } from "@/components/client";
-import { saveCategory } from "@/app/actions/finance";
+import { saveCategory } from "@/app/actions/planning";
 import { GROUP_LABEL } from "@/lib/templates";
 
 const COLORS = ["", "#a6ff00", "#8ab4ff", "#f5b83d", "#ff6b5e", "#b794f6", "#5eead4", "#f9a8d4", "#9a9aa2"];

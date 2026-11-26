@@ -1,6 +1,7 @@
 import type { ISODate } from "./dates";
 
-export type TxType = "income" | "expense" | "transfer" | "adjustment" | "card_payment";
+/** refund = estorno: reduz despesa (em conta devolve saldo; no cartão abate a fatura). Nunca é receita. */
+export type TxType = "income" | "expense" | "transfer" | "adjustment" | "card_payment" | "refund";
 export type TxStatus = "pending" | "paid" | "canceled";
 export type PaymentMethod = "cash" | "pix" | "debit" | "credit" | "boleto" | "transfer" | "app" | "other";
 export type CategoryGroup = "revenue" | "cost" | "fixed" | "variable" | "investment" | "withdrawal" | "personal" | "other";
@@ -46,6 +47,7 @@ export interface Account {
   type: "checking" | "savings" | "wallet" | "cash" | "digital" | "investment" | "other";
   openingBalance: number;
   archived: boolean;
+  institution?: string | null;
 }
 
 export interface Card {

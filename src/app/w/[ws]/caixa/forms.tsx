@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { closeCash, registerDailySales } from "@/app/actions/finance";
+import { closeCash, registerDailySales } from "@/app/actions/business";
 import { formatBRL } from "@/lib/finance/money";
 import { useState } from "react";
 import { parseMoneyInput } from "@/lib/finance/money";

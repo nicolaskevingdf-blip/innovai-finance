@@ -1,39 +1,31 @@
 "use client";
 import clsx from "clsx";
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CreditCard, Paperclip, Repeat, SlidersHorizontal } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CreditCard, Paperclip, Repeat, SlidersHorizontal, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { ActionForm, ConfirmSubmit, MoneyInput, Sheet, Submit } from "./client";
 import { CategorySelect, type FormRefs } from "./tx-form";
-import { cancelTransaction, deleteTransaction, settleTransaction, updateTransaction, uploadAttachment } from "@/app/actions/finance";
+import { cancelTransaction, createRefund, deleteTransaction, settleTransaction, updateTransaction } from "@/app/actions/transactions";
+import { uploadAttachment } from "@/app/actions/documents";
 import { formatBRL } from "@/lib/finance/money";
 import { fmtDate, fmtDayMonth } from "@/lib/finance/dates";
-import { OBLIGATION_LABEL, type ObligationStatus } from "@/lib/finance/obligations";
+import { OBLIGATION_LABEL, obligationStatus, type ObligationStatus } from "@/lib/finance/obligations";
 import { PAYMENT_METHODS } from "@/lib/templates";
 import type { TxRow } from "@/lib/data/tx-query";
 
 const STATUS_TONE: Record<ObligationStatus, string> = { pending: "text-muted", overdue: "text-neg", due_today: "text-warn", scheduled: "text-info", partial: "text-warn", paid: "text-lime", canceled: "text-faint" };
 
-export function statusOf(r: TxRow, today: string): ObligationStatus {
-  if (r.status === "canceled") return "canceled";
-  if (r.status === "paid") return "paid";
-  const due = r.dueDate ?? r.date;
-  if (due < today) return "overdue";
-  if (due === today) return "due_today";
-  if (r.tags.includes("parcial")) return "partial";
-  return r.tags.includes("programada") ? "scheduled" : "pending";
-}
-
 export function TxRowItem({ r, refs, showDue }: { r: TxRow; refs: FormRefs; showDue?: boolean }) {
-  const [tab, setTab] = useState<"info" | "edit" | "settle">("info");
-  const st = statusOf(r, refs.today);
-  const Icon = r.type === "income" ? ArrowDownLeft : r.type === "transfer" ? ArrowLeftRight : r.cardId ? CreditCard : r.type === "adjustment" ? SlidersHorizontal : ArrowUpRight;
-  const sign = r.type === "income" ? 1 : r.type === "transfer" ? 0 : r.type === "adjustment" ? Math.sign(r.amount) : -1;
-  const sub = [r.category ?? (r.type === "transfer" ? `${r.account} → ${r.toAccount}` : r.type === "card_payment" ? "Pagamento de fatura" : r.type === "adjustment" ? "Ajuste de saldo" : "Sem categoria"), r.card ?? r.account, r.contact].filter(Boolean).join(" · ");
+  const [tab, setTab] = useState<"info" | "edit" | "settle" | "refund">("info");
+  const st = obligationStatus(r, refs.today);
+  const Icon = r.type === "income" ? ArrowDownLeft : r.type === "refund" ? Undo2 : r.type === "transfer" ? ArrowLeftRight : r.cardId ? CreditCard : r.type === "adjustment" ? SlidersHorizontal : ArrowUpRight;
+  const sign = r.type === "income" || r.type === "refund" ? 1 : r.type === "transfer" ? 0 : r.type === "adjustment" ? Math.sign(r.amount) : -1;
+  const sub = [r.type === "refund" ? `Estorno${r.category ? ` · ${r.category}` : ""}` : r.category ?? (r.type === "transfer" ? `${r.account} → ${r.toAccount}` : r.type === "card_payment" ? "Pagamento de fatura" : r.type === "adjustment" ? "Ajuste de saldo" : "Sem categoria"), r.card ?? r.account, r.contact].filter(Boolean).join(" · ");
+  const canRefund = refs.canWrite && r.type === "expense" && r.status === "paid";
   const isPending = r.status === "pending";
   return (
     <Sheet title={r.description} onClose={() => setTab("info")} trigger={
       <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-surface-2">
-        <span className={clsx("flex size-10 shrink-0 items-center justify-center rounded-xl", r.type === "income" ? "bg-lime-soft text-lime" : "bg-surface-3 text-muted")}><Icon size={17} /></span>
+        <span className={clsx("flex size-10 shrink-0 items-center justify-center rounded-xl", r.type === "income" || r.type === "refund" ? "bg-lime-soft text-lime" : "bg-surface-2 text-muted")}><Icon size={17} /></span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 truncate text-[14.5px]">{r.description}{r.recurrenceId && <Repeat size={12} className="shrink-0 text-faint" />}{r.attachments.length > 0 && <Paperclip size={12} className="shrink-0 text-faint" />}</span>
           <span className="block truncate text-[12.5px] text-faint">{sub}</span>
@@ -46,13 +38,14 @@ export function TxRowItem({ r, refs, showDue }: { r: TxRow; refs: FormRefs; show
     }>
       <div className="pb-2">
         <div className="mb-4 flex gap-1.5">
-          {[["info", "Detalhes"], ...(refs.canWrite && r.type !== "card_payment" && r.type !== "adjustment" ? [["edit", "Editar"]] : []), ...(isPending && !r.cardId && refs.canWrite ? [["settle", r.type === "income" ? "Receber" : "Pagar"]] : [])].map(([k, l]) => (
+          {[["info", "Detalhes"], ...(refs.canWrite && r.type !== "card_payment" && r.type !== "adjustment" ? [["edit", "Editar"]] : []), ...(isPending && !r.cardId && refs.canWrite ? [["settle", r.type === "income" ? "Receber" : "Pagar"]] : []), ...(canRefund ? [["refund", "Estornar"]] : [])].map(([k, l]) => (
             <button key={k} type="button" data-active={tab === k} onClick={() => setTab(k as typeof tab)} className="chip">{l}</button>
           ))}
         </div>
         {tab === "info" && <Info r={r} refs={refs} st={st} />}
         {tab === "edit" && <Edit r={r} refs={refs} />}
         {tab === "settle" && <Settle r={r} refs={refs} />}
+        {tab === "refund" && <Refund r={r} refs={refs} />}
       </div>
     </Sheet>
   );
@@ -65,7 +58,7 @@ function Info({ r, refs, st }: { r: TxRow; refs: FormRefs; st: ObligationStatus 
     <div>
       <div className="num mb-4 text-[30px] font-semibold">{formatBRL(Math.abs(r.amount))}</div>
       <div className="card px-4 py-1">
-        {line("Tipo", { income: "Receita", expense: r.cardId ? "Compra no cartão" : "Despesa", transfer: "Transferência", adjustment: "Ajuste de saldo", card_payment: "Pagamento de fatura" }[r.type])}
+        {line("Tipo", ({ income: "Receita", expense: r.cardId ? "Compra no cartão" : "Despesa", transfer: "Transferência", adjustment: "Ajuste de saldo", card_payment: "Pagamento de fatura", refund: r.cardId ? "Estorno no cartão" : "Estorno" } as Record<string, string>)[r.type])}
         {line("Situação", <span className={STATUS_TONE[st]}>{OBLIGATION_LABEL[st]}</span>)}
         {line("Data", fmtDate(r.date))}
         {r.status === "pending" && line("Vencimento", fmtDate(r.dueDate))}
@@ -146,6 +139,18 @@ function Settle({ r, refs }: { r: TxRow; refs: FormRefs }) {
       </div>
       <label className="block"><span className="label">Forma de pagamento</span><select name="payment_method" defaultValue={r.paymentMethod ?? ""} className="input"><option value="">—</option>{PAYMENT_METHODS.filter((p) => p.value !== "credit").map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></label>
       <Submit className="w-full">Confirmar {r.type === "income" ? "recebimento" : "pagamento"}</Submit>
+    </ActionForm>
+  );
+}
+
+function Refund({ r, refs }: { r: TxRow; refs: FormRefs }) {
+  return (
+    <ActionForm action={createRefund}>
+      <input type="hidden" name="ws" value={refs.ws} /><input type="hidden" name="id" value={r.id} />
+      <p className="text-[14px] leading-relaxed text-muted">{r.cardId ? <>O estorno entra como <b className="text-fg">crédito na fatura</b> e libera limite do cartão.</> : <>O valor volta para a conta <b className="text-fg">{r.account}</b>.</>} A despesa da categoria é reduzida — estorno não conta como receita.</p>
+      <label className="block"><span className="label">Valor estornado</span><MoneyInput name="amount" defaultValue={(r.amount / 100).toFixed(2).replace(".", ",")} /><span className="mt-1 block text-[12.5px] text-faint">Pode ser parcial. O total estornado não pode passar de {formatBRL(r.amount)}.</span></label>
+      <label className="block"><span className="label">Data do estorno</span><input type="date" name="date" defaultValue={refs.today} className="input" /></label>
+      <Submit className="w-full">Registrar estorno</Submit>
     </ActionForm>
   );
 }

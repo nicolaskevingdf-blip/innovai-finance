@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { saveAsset } from "@/app/actions/finance";
+import { saveAsset } from "@/app/actions/planning";
 
 const TYPES = { asset: [["property", "Imóvel"], ["vehicle", "Veículo"], ["investment", "Investimento"], ["account", "Valor em conta"], ["good", "Bem"], ["other", "Outro ativo"]], liability: [["financing", "Financiamento"], ["loan", "Empréstimo"], ["other", "Outro passivo"]] } as const;
 

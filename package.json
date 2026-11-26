@@ -7,14 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "node --env-file=.env.local e2e/run.mjs",
+    "test:db": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -v ON_ERROR_STOP=1 -f supabase/tests/db_rules_test.sql",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.14.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
     "clsx": "^2.1.1",
-    "date-fns": "^4.4.0",
     "lucide-react": "^1.81.0",
     "next": "15.5.29",
     "react": "19.1.0",
@@ -31,9 +33,15 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
+    "playwright": "^1.63.0",
     "supabase": "^2.122.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.33"
+    }
   }
 }

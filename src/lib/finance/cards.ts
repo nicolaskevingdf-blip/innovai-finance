@@ -1,4 +1,4 @@
-import { addMonths, iso, monthStart, parts, type ISODate } from "./dates";
+import { addMonths, iso, parts, type ISODate } from "./dates";
 import type { Card, Tx } from "./types";
 
 /**
@@ -78,14 +78,13 @@ export function buildInvoices(card: Card, txs: Tx[], today: ISODate): Invoice[] 
   };
   for (const t of txs) {
     if (t.cardId !== card.id || t.status === "canceled" || !t.invoiceMonth) continue;
-    if (t.type === "expense") {
+    if (t.type === "expense" || t.type === "refund") {
+      // estorno é crédito na fatura: reduz o total devido
       const inv = get(t.invoiceMonth);
-      inv.total += t.amount;
+      inv.total += t.type === "refund" ? -t.amount : t.amount;
       inv.items.push(t);
     } else if (t.type === "card_payment" && t.status === "paid") {
       get(t.invoiceMonth).paid += t.amount;
-    } else if (t.type === "income") {
-      // estornos não são permitidos como 'income' em cartão (constraint), ignorado
     }
   }
   const currentOpen = invoiceMonthFor(today, card.closingDay);
@@ -106,6 +105,7 @@ export function cardLimit(card: Card, txs: Tx[]) {
   for (const t of txs) {
     if (t.cardId !== card.id || t.status === "canceled") continue;
     if (t.type === "expense") purchases += t.amount;
+    if (t.type === "refund") purchases -= t.amount; // estorno libera limite
     if (t.type === "card_payment" && t.status === "paid") payments += t.amount;
   }
   const used = Math.max(0, purchases - payments);
@@ -113,4 +113,3 @@ export function cardLimit(card: Card, txs: Tx[]) {
 }
 
 export const currentInvoiceMonth = (card: Card, today: ISODate) => invoiceMonthFor(today, card.closingDay);
-export { monthStart };

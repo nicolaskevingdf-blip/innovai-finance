@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, CardHeader, Notice, PageHeader } from "@/components/ui";
 import { ConfirmSubmit, Sheet } from "@/components/client";
 import { removeMember, revokeInvite, updateMemberRole } from "@/app/actions/workspace";
-import { fmtDate } from "@/lib/finance/dates";
+import { fmtDateTime } from "@/lib/finance/dates";
 import { InviteForm } from "./invite";
 import { ROLES } from "@/lib/templates";
 
@@ -47,7 +47,7 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
         <Card className="mt-4"><CardHeader title="Convites pendentes" />
           <div className="px-5 pb-4 pt-2">{invites!.map((i) => (
             <div key={i.id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 text-[14px] first:border-t-0">
-              <span className="min-w-0 truncate">{i.email} · <span className="text-muted">{LABEL[i.role]}</span> · <span className="text-faint">expira {fmtDate(i.expires_at.slice(0, 10))}</span></span>
+              <span className="min-w-0 truncate">{i.email} · <span className="text-muted">{LABEL[i.role]}</span> · <span className="text-faint">expira {fmtDateTime(i.expires_at, false)}</span></span>
               <form action={revokeInvite}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={i.id} /><button className="btn-ghost btn-sm">Revogar</button></form>
             </div>))}</div>
         </Card>

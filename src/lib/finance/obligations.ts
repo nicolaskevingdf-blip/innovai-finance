@@ -19,7 +19,7 @@ export const OBLIGATION_LABEL: Record<ObligationStatus, string> = {
  *   e o saldo restante permanece 'pending' com parentId apontando para o original.
  * - "Programada" = pendente com vencimento futuro e tag "programada".
  */
-export function obligationStatus(t: Tx, today: ISODate, hasPaidSiblings = false): ObligationStatus {
+export function obligationStatus(t: Pick<Tx, "status" | "dueDate" | "date" | "tags">, today: ISODate, hasPaidSiblings = false): ObligationStatus {
   if (t.status === "canceled") return "canceled";
   if (t.status === "paid") return "paid";
   const due = t.dueDate ?? t.date;

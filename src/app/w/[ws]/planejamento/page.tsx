@@ -9,7 +9,7 @@ import { addMonths, daysInMonth, fmtMonth, monthEnd, monthStart, parts, cap } fr
 import { summarize } from "@/lib/finance/ledger";
 import { average, budgetUsage, DEFAULT_THRESHOLDS, monthPaceEstimate } from "@/lib/finance/planning";
 import { toCents } from "@/lib/finance/money";
-import { copyBudgets } from "@/app/actions/finance";
+import { copyBudgets } from "@/app/actions/planning";
 import { BudgetForm } from "./form";
 
 export const metadata = { title: "Planejamento" };

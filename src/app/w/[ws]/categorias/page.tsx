@@ -3,7 +3,7 @@ import { getWorkspace } from "@/lib/data/workspace";
 import { loadLedger } from "@/lib/data/ledger";
 import { Card, PageHeader, Tabs, Money } from "@/components/ui";
 import { ConfirmSubmit, Sheet } from "@/components/client";
-import { removeCategory } from "@/app/actions/finance";
+import { removeCategory } from "@/app/actions/planning";
 import { GROUP_LABEL } from "@/lib/templates";
 import { addMonths, monthEnd, monthStart } from "@/lib/finance/dates";
 import { summarize } from "@/lib/finance/ledger";

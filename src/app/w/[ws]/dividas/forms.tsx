@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { addDebtPayment, saveDebt } from "@/app/actions/finance";
+import { addDebtPayment, saveDebt } from "@/app/actions/planning";
 
 export interface DebtView { id: string; creditor: string; description: string | null; total: number; rate: number | null; installmentsTotal: number | null; installment: number | null; dueDay: number | null; startDate: string; status: string }
 const m = (c: number | null) => (c ? (c / 100).toFixed(2).replace(".", ",") : "");

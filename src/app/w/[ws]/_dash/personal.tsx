@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, CreditCard, Flag, Target, Wallet } from "lucide-react";
 import { Card, CardHeader, Empty, Help, MiniStat, Money, Progress, SectionTitle, Stat } from "@/components/ui";
-import { MonthlyBars } from "@/components/charts";
+import { MonthlyBars } from "@/components/charts-lazy";
 import { InsightCard } from "@/components/insight-card";
 import { loadLedger } from "@/lib/data/ledger";
 import { loadGoals, loadInsights } from "@/lib/data/insights";

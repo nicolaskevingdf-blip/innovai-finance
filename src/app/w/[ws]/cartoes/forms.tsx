@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, MoneyInput, Submit } from "@/components/client";
-import { payInvoice, saveCard } from "@/app/actions/finance";
+import { payInvoice, saveCard } from "@/app/actions/cards";
 
 export function CardForm({ ws, c }: { ws: string; c?: { id: string; name: string; bank: string | null; limit: number; closingDay: number; dueDay: number } }) {
   return (

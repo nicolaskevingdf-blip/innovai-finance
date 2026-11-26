@@ -1,6 +1,6 @@
 "use client";
 import { ActionForm, Submit } from "@/components/client";
-import { deleteAccount, updateProfile } from "@/app/actions/account";
+import { deleteAccount, updateProfile } from "@/app/actions/profile";
 
 export function ProfileForm({ name }: { name: string }) {
   return (

@@ -3,8 +3,8 @@ import { getWorkspace } from "@/lib/data/workspace";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Empty, Notice, PageHeader, Tabs } from "@/components/ui";
 import { ConfirmSubmit, Sheet } from "@/components/client";
-import { deleteAttachment } from "@/app/actions/finance";
-import { fmtDate } from "@/lib/finance/dates";
+import { deleteAttachment } from "@/app/actions/documents";
+import { fmtDateTime } from "@/lib/finance/dates";
 import { aiEnabled } from "@/lib/ai/claude";
 import { UploadForm } from "./upload";
 
@@ -29,7 +29,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {docs?.length ? docs.map((d) => (
           <div key={d.id} className="flex items-center gap-3 border-t border-line px-5 py-3.5 first:border-t-0">
             <span className="flex size-10 items-center justify-center rounded-xl bg-surface-3 text-muted"><FileText size={17} /></span>
-            <a href={`/api/documentos/${d.id}`} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline"><div className="truncate text-[14.5px]">{d.file_name}</div><div className="text-[12.5px] text-faint">{KIND[d.kind]} · {kb(d.size_bytes ?? 0)} · {fmtDate(d.created_at.slice(0, 10))}{d.transactions ? ` · ${d.transactions.description}` : ""}</div></a>
+            <a href={`/api/documentos/${d.id}`} target="_blank" rel="noreferrer" className="min-w-0 flex-1 hover:underline"><div className="truncate text-[14.5px]">{d.file_name}</div><div className="text-[12.5px] text-faint">{KIND[d.kind]} · {kb(d.size_bytes ?? 0)} · {fmtDateTime(d.created_at, false)}{d.transactions ? ` · ${d.transactions.description}` : ""}</div></a>
             {ctx.canWrite && <form action={deleteAttachment}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={d.id} /><ConfirmSubmit message="Excluir este documento?" className="btn-ghost btn-sm">Excluir</ConfirmSubmit></form>}
           </div>
         )) : <Empty icon={<FileText size={18} />} title="Nenhum documento" />}

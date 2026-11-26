@@ -6,7 +6,7 @@ import { ConfirmSubmit } from "@/components/client";
 import { deleteWorkspace } from "@/app/actions/workspace";
 import { STATUS_LABEL } from "@/lib/plans";
 import { SEGMENTS } from "@/lib/templates";
-import { fmtDate } from "@/lib/finance/dates";
+import { fmtDateTime } from "@/lib/finance/dates";
 import { SettingsForm } from "./form";
 
 export const metadata = { title: "Configurações" };
@@ -55,7 +55,7 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
       </div>
       {ctx.canAdmin && (audit ?? []).length > 0 && (
         <Card className="mt-4"><CardHeader title="Atividades recentes" subtitle="Registro de auditoria (sem valores financeiros)" />
-          <div className="px-5 pb-4 pt-2">{audit!.map((a, i) => <div key={i} className="flex justify-between border-t border-line py-2 text-[13.5px] first:border-t-0"><span className="text-muted">{a.user_id === ctx.userId ? "Você" : "Um membro"} {ACTION[a.action] ?? a.action} {ENTITY[a.entity] ?? a.entity}</span><span className="text-faint">{fmtDate(a.at.slice(0, 10))} {a.at.slice(11, 16)}</span></div>)}</div>
+          <div className="px-5 pb-4 pt-2">{audit!.map((a, i) => <div key={i} className="flex justify-between border-t border-line py-2 text-[13.5px] first:border-t-0"><span className="text-muted">{a.user_id === ctx.userId ? "Você" : "Um membro"} {ACTION[a.action] ?? a.action} {ENTITY[a.entity] ?? a.entity}</span><span className="text-faint">{fmtDateTime(a.at)}</span></div>)}</div>
         </Card>
       )}
     </>

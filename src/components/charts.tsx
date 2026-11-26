@@ -30,7 +30,7 @@ function Tip({ active, payload, label }: { active?: boolean; payload?: { name: s
   );
 }
 
-export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
+function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
       {items.map((i) => (

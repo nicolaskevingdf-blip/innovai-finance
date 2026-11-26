@@ -1,7 +1,7 @@
 import { getWorkspace } from "@/lib/data/workspace";
 import { loadLedger } from "@/lib/data/ledger";
 import { Badge, Card, CardHeader, Empty, Money, Notice, PageHeader, Stat } from "@/components/ui";
-import { BalanceArea } from "@/components/charts";
+import { BalanceArea } from "@/components/charts-lazy";
 import { addDays, diffDays, fmtDate, fmtDayMonth, isISODate } from "@/lib/finance/dates";
 import { forecastItems, projectCashflow, type Granularity } from "@/lib/finance/cashflow";
 

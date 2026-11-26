@@ -20,7 +20,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const { rows, total } = await queryTransactions(ws, defaultRange ? { ...f, ate: monthEnd(todayISO()) } : f);
   const live = rows.filter((r) => r.status !== "canceled");
   const inc = live.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
-  const exp = live.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+  // estornos abatem despesas (mesmo critério do motor financeiro)
+  const exp = live.reduce((s, r) => s + (r.type === "expense" ? r.amount : r.type === "refund" ? -r.amount : 0), 0);
   const exportUrl = `/api/exportar/movimentacoes?ws=${ws}&${new URLSearchParams(Object.entries(f).filter(([, v]) => v) as [string, string][])}`;
   return (
     <>
@@ -35,7 +36,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <div className="card px-4 py-3"><div className="text-faint">Despesas</div><Money c={exp} className="font-semibold" /></div>
         <div className="card px-4 py-3"><div className="text-faint">Resultado</div><Money c={inc - exp} tone="auto" className="font-semibold" /></div>
       </div>
-      <p className="mb-2 px-1 text-[12.5px] text-faint">{total > rows.length ? `Mostrando ${rows.length} de ${total}. Refine os filtros para ver mais.` : `${total} lançamento(s)${defaultRange ? " até o fim do mês atual" : ""}. Totais excluem transferências, ajustes e pagamentos de fatura.`}</p>
+      <p className="mb-2 px-1 text-[12.5px] text-faint">{total > rows.length ? `Mostrando ${rows.length} de ${total}. Refine os filtros para ver mais.` : `${total} lançamento(s)${defaultRange ? " até o fim do mês atual" : ""}. Totais excluem transferências, ajustes e pagamentos de fatura; estornos abatem despesas.`}</p>
       <Card><TxList rows={rows} refs={refs} groupBy={f.status === "pending" || f.status === "overdue" ? "due" : "date"} /></Card>
     </>
   );

@@ -1,12 +1,14 @@
 import "server-only";
+import { todayISO } from "@/lib/finance/dates";
 import { createClient } from "../supabase/server";
 import { isISODate } from "../finance/dates";
 import { parseMoneyInput, toCents } from "../finance/money";
+import type { TxStatus, TxType } from "../finance/types";
 
 export interface TxFilters { q?: string; tipo?: string; categoria?: string; conta?: string; status?: string; de?: string; ate?: string; metodo?: string; min?: string; max?: string; contato?: string; cartao?: string; ordem?: string }
 
 export interface TxRow {
-  id: string; type: string; status: string; amount: number; description: string; date: string; dueDate: string | null; paidAt: string | null;
+  id: string; type: TxType; status: TxStatus; amount: number; description: string; date: string; dueDate: string | null; paidAt: string | null;
   competenceDate: string; categoryId: string | null; category: string | null; accountId: string | null; account: string | null; toAccount: string | null; cardId: string | null; card: string | null;
   invoiceMonth: string | null; contactId: string | null; contact: string | null; paymentMethod: string | null; notes: string | null; tags: string[];
   installment: string | null; installmentGroup: string | null; recurrenceId: string | null; parentId: string | null; source: string; attachments: { id: string; file_name: string; path: string }[];
@@ -21,8 +23,8 @@ export async function queryTransactions(wsId: string, f: TxFilters, limit = 300)
     .select("*, categories(name), account:financial_accounts!transactions_account_id_fkey(name), to_account:financial_accounts!transactions_to_account_id_fkey(name), credit_cards(name), contacts(name), attachments(id,file_name,path)", { count: "exact" })
     .eq("workspace_id", wsId);
   if (f.q?.trim()) q = q.ilike("description", `%${f.q.trim().replace(/[%_,()]/g, " ").slice(0, 60)}%`);
-  if (f.tipo && ["income", "expense", "transfer", "adjustment", "card_payment"].includes(f.tipo)) q = q.eq("type", f.tipo);
-  if (f.status === "overdue") q = q.eq("status", "pending").lt("due_date", new Date().toISOString().slice(0, 10));
+  if (f.tipo && ["income", "expense", "transfer", "adjustment", "card_payment", "refund"].includes(f.tipo)) q = q.eq("type", f.tipo);
+  if (f.status === "overdue") q = q.eq("status", "pending").lt("due_date", todayISO());
   else if (f.status && ["pending", "paid", "canceled"].includes(f.status)) q = q.eq("status", f.status);
   if (f.categoria && UUID.test(f.categoria)) {
     // inclui subcategorias

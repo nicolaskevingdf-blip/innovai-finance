@@ -9,10 +9,10 @@ import { isISODate } from "@/lib/finance/dates";
 import { goalProjection } from "@/lib/finance/planning";
 import { toCents } from "@/lib/finance/money";
 import { summarize } from "@/lib/finance/ledger";
-import { monthEnd, monthStart } from "@/lib/finance/dates";
+import { monthEnd, monthStart, todayISO } from "@/lib/finance/dates";
 import { answerDeterministic } from "@/lib/ai/intents";
 import { buildFinancialContext } from "@/lib/ai/context";
-import { claude, FALLBACK, MODEL, textOf } from "@/lib/ai/claude";
+import { claude, consumeQuota, FALLBACK, MODEL, textOf } from "@/lib/ai/claude";
 
 export interface EntrySuggestion {
   type: "income" | "expense" | null;
@@ -36,14 +36,15 @@ export async function interpretEntry(wsId: string, text: string): Promise<{ ok: 
   const sb = await createClient();
   const { data: cats } = await sb.from("categories").select("id,name,kind").eq("workspace_id", wsId).eq("archived", false);
   const categories = cats ?? [];
-  const today = (await import("@/lib/finance/dates")).todayISO();
+  const today = todayISO();
   const p = parseEntryText(input.data, today);
   let s: EntrySuggestion = { ...p, categoryId: null, categoryName: null, engine: "local" };
   const cat = matchCategory(p.categoryHint, p.type, categories);
   if (cat) { s.categoryId = cat.id; s.categoryName = cat.name; }
 
   const ai = hasFeature(ctx.sub, "ai") ? claude() : null;
-  if (ai && (p.confidence !== "high" || !cat)) {
+  // só consome cota (e custo) quando a interpretação local não foi suficiente
+  if (ai && (p.confidence !== "high" || !cat) && (await consumeQuota())) {
     try {
       const schema = {
         type: "object", additionalProperties: false,
@@ -105,6 +106,9 @@ export async function askAssistant(wsId: string, question: string, history: Chat
   const deterministic = answerDeterministic(q.data, { kind, today: L.today, accounts: L.accounts, categories: L.categories, cards: L.cards, txs: L.txs, balances: L.balances, goals: goalsP, minCash: settings.min_cash ?? null, withdrawalLimit: settings.withdrawal_limit ?? null });
 
   const ai = hasFeature(ctx.sub, "ai") ? claude() : null;
+  if (ai && !(await consumeQuota())) {
+    return { answer: (deterministic ?? "Você atingiu o limite diário de perguntas abertas à IA.") + "\n\n(Limite diário da IA generativa atingido — respostas calculadas pelo sistema continuam disponíveis.)", engine: deterministic ? "local" : "none" };
+  }
   if (!ai) {
     return deterministic
       ? { answer: deterministic, engine: "local" }

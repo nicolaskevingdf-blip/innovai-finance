@@ -5,10 +5,10 @@ import { queryTransactions } from "@/lib/data/tx-query";
 import { Card, CardHeader, PageHeader, Stat } from "@/components/ui";
 import { ConfirmSubmit, Sheet } from "@/components/client";
 import { TxList } from "@/components/tx-list";
-import { BalanceArea } from "@/components/charts";
-import { archiveAccount } from "@/app/actions/finance";
+import { BalanceArea } from "@/components/charts-lazy";
+import { archiveAccount } from "@/app/actions/accounts";
 import { addMonths, fmtMonth, monthEnd, monthStart } from "@/lib/finance/dates";
-import { balanceEffect } from "@/lib/finance/ledger";
+import { accountFlows, balanceEffect } from "@/lib/finance/ledger";
 import { loadRefs } from "../../refs";
 import { AccountForm, AdjustForm } from "../forms";
 
@@ -21,14 +21,7 @@ export default async function Page({ params }: { params: Promise<{ ws: string; i
   const balance = L.balances.get(id) ?? 0;
   const { rows } = await queryTransactions(ws, { conta: id }, 150);
   const ms = monthStart(L.today), me = monthEnd(L.today);
-  let inc = 0, out = 0, trIn = 0, trOut = 0;
-  for (const t of L.txs) {
-    if (t.status !== "paid" || !t.paidAt || t.paidAt < ms || t.paidAt > me) continue;
-    if (t.type === "income" && t.accountId === id) inc += t.amount;
-    if ((t.type === "expense" || t.type === "card_payment") && t.accountId === id) out += t.amount;
-    if (t.type === "transfer" && t.toAccountId === id) trIn += t.amount;
-    if (t.type === "transfer" && t.accountId === id) trOut += t.amount;
-  }
+  const { income: inc, expense: out, transferIn: trIn, transferOut: trOut } = accountFlows(L.txs, id, ms, me);
   // evolução: saldo no fim de cada mês (retroativo a partir do saldo atual, usando o histórico carregado)
   const series = [];
   let running = balance;
@@ -41,8 +34,10 @@ export default async function Page({ params }: { params: Promise<{ ws: string; i
     <>
       <PageHeader eyebrow="Conta" title={acc.name} actions={ctx.canWrite && <>
         <Sheet title="Ajustar saldo" trigger={<button className="btn-secondary btn-sm">Ajustar saldo</button>}><AdjustForm ws={ws} id={id} /></Sheet>
-        <Sheet title="Editar conta" trigger={<button className="btn-secondary btn-sm">Editar</button>}><AccountForm ws={ws} a={{ id, name: acc.name, type: acc.type, institution: null }} /></Sheet>
-        <form action={archiveAccount}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={id} /><input type="hidden" name="archived" value={String(!acc.archived)} /><ConfirmSubmit message={acc.archived ? "Reativar esta conta?" : "Arquivar esta conta? O histórico é mantido."} className="btn-ghost btn-sm">{acc.archived ? "Reativar" : "Arquivar"}</ConfirmSubmit></form>
+        <Sheet title="Editar conta" trigger={<button className="btn-secondary btn-sm">Editar</button>}><AccountForm ws={ws} a={{ id, name: acc.name, type: acc.type, institution: acc.institution ?? null }} /></Sheet>
+        {acc.archived || balance === 0 ? (
+          <form action={archiveAccount}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={id} /><input type="hidden" name="archived" value={String(!acc.archived)} /><ConfirmSubmit message={acc.archived ? "Reativar esta conta?" : "Arquivar esta conta? O histórico é mantido."} className="btn-ghost btn-sm">{acc.archived ? "Reativar" : "Arquivar"}</ConfirmSubmit></form>
+        ) : <span className="self-center text-[12.5px] text-faint" title="Contas com saldo não podem ser arquivadas">Para arquivar, zere o saldo (transfira ou ajuste)</span>}
       </>} />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-5">

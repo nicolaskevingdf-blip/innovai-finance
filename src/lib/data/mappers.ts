@@ -9,6 +9,6 @@ export const mapTx = (r: any): Tx => ({
   dueDate: r.due_date, paidAt: r.paid_at, paymentMethod: r.payment_method, installmentGroup: r.installment_group,
   installmentNumber: r.installment_number, installmentTotal: r.installment_total, parentId: r.parent_id, tags: r.tags ?? [],
 });
-export const mapAccount = (r: any): Account => ({ id: r.id, name: r.name, type: r.type, openingBalance: toCents(r.opening_balance), archived: r.archived });
+export const mapAccount = (r: any): Account => ({ id: r.id, name: r.name, type: r.type, openingBalance: toCents(r.opening_balance), archived: r.archived, institution: r.institution ?? null });
 export const mapCategory = (r: any): Category => ({ id: r.id, name: r.name, kind: r.kind, grp: r.grp, parentId: r.parent_id, icon: r.icon, color: r.color });
 export const mapCard = (r: any): Card => ({ id: r.id, name: r.name, bank: r.bank, limit: toCents(r.limit_amount), closingDay: r.closing_day, dueDay: r.due_day });

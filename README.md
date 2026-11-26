@@ -102,9 +102,11 @@ npm run dev                   # http://localhost:3000
 ```
 
 ```bash
-npm test                      # motor financeiro + assistente (30 testes)
-npm run lint
-npm run build
+npm test                      # motor financeiro + assistente (39 testes)
+npm run typecheck && npm run lint
+npm run test:db               # regras e segurança no banco local (15 verificações)
+npm run build && npm start &  # depois:
+npm run test:e2e              # 10 cenários ponta a ponta no navegador
 ```
 
 Teste de RLS em SQL puro (sem Docker, qualquer Postgres 15+):
@@ -117,7 +119,9 @@ psql -d banco_vazio -f supabase/tests/rls_test.sql
 ## Produção
 
 - App: https://innovai-finance.vercel.app (Vercel, funções em `gru1` — São Paulo)
-- Banco: Supabase `innovai-finance` (`iuxqxkyjbrekxhrodybv`, `sa-east-1`), migrações 0001–0004 aplicadas
+- Banco: Supabase `innovai-finance` (`iuxqxkyjbrekxhrodybv`, `sa-east-1`), migrações 0001–0007 aplicadas
+- Saúde: `GET /api/health`
+- Auditoria técnica: veja [AUDITORIA.md](AUDITORIA.md)
 - Deploy automático a cada push na `main`
 
 ## Publicar (do zero)
