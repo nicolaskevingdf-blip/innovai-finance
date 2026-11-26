@@ -40,7 +40,7 @@ export async function signUp(_: ActionState, fd: FormData): Promise<ActionState>
   }
   // Supabase devolve usuário sem identidades quando o e-mail já existe (proteção contra enumeração)
   if (data.user && data.user.identities?.length === 0) return { error: "Este e-mail já possui conta." };
-  if (!data.session) return { ok: true, message: "Conta criada! Enviamos um link de confirmação para o seu e-mail. Clique nele e depois volte para entrar com seu e-mail e senha." };
+  if (!data.session) return { ok: true, message: "Conta criada! Enviamos um link de confirmação para o seu e-mail. Ao clicar nele, você entra direto na Innovai." };
   redirect("/onboarding");
 }
 
