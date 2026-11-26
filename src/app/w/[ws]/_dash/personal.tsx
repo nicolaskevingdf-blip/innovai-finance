@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, CreditCard, Flag, Target, Wallet } from "lucide-react";
 import { Card, CardHeader, Empty, Help, MiniStat, Money, Progress, SectionTitle, Stat } from "@/components/ui";
 import { MonthlyBars } from "@/components/charts-lazy";
+import { FirstSteps } from "@/components/first-steps";
 import { InsightCard } from "@/components/insight-card";
 import { loadLedger } from "@/lib/data/ledger";
 import { loadGoals, loadInsights } from "@/lib/data/insights";
@@ -49,8 +50,13 @@ export async function PersonalDashboard({ ctx }: { ctx: WorkspaceCtx }) {
       <header>
         <div className="eyebrow mb-1">{fmtMonth(L.today, true)}</div>
         <h1 className="text-[22px] font-bold leading-tight sm:text-[28px]">{greeting()}{name ? `, ${name}` : ""}</h1>
-        {!hasData && <p className="mt-1 text-[14px] text-muted">Registre seus primeiros lançamentos no botão <span className="font-semibold text-lime">+</span> para ver sua situação financeira.</p>}
       </header>
+      <FirstSteps steps={[
+        { label: "Conta principal configurada", hint: "Cadastre onde seu dinheiro está, com o saldo atual.", done: L.accounts.length > 0, href: `${base}/contas` },
+        { label: "Registre seu primeiro lançamento", hint: "Toque no botão + ou escreva algo como “gastei 30 no mercado”.", done: L.txs.some((t) => t.type !== "adjustment") },
+        { label: "Cadastre seu cartão de crédito", hint: "Para acompanhar faturas, parcelas e limite.", done: L.cards.length > 0, href: `${base}/cartoes`, optional: true },
+        { label: "Defina um orçamento do mês", hint: "Receba alertas antes de estourar uma categoria.", done: (budgets ?? []).length > 0, href: `${base}/planejamento`, optional: true },
+      ]} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* 2. Saldo disponível (destaque) + 4. comprometido */}

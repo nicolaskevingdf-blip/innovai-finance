@@ -1,11 +1,15 @@
 "use client";
 import clsx from "clsx";
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, CreditCard, Paperclip, Repeat, SlidersHorizontal, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { ActionForm, ConfirmSubmit, MoneyInput, Sheet, Submit } from "./client";
 import { CategorySelect, type FormRefs } from "./tx-form";
 import { cancelTransaction, createRefund, deleteTransaction, settleTransaction, updateTransaction } from "@/app/actions/transactions";
 import { uploadAttachment } from "@/app/actions/documents";
+import { loadEntityHistory } from "@/app/actions/history";
+import { HistoryList } from "./history-list";
+import type { HistoryEntry } from "@/lib/history";
 import { formatBRL } from "@/lib/finance/money";
 import { fmtDate, fmtDayMonth } from "@/lib/finance/dates";
 import { OBLIGATION_LABEL, obligationStatus, type ObligationStatus } from "@/lib/finance/obligations";
@@ -15,7 +19,7 @@ import type { TxRow } from "@/lib/data/tx-query";
 const STATUS_TONE: Record<ObligationStatus, string> = { pending: "text-muted", overdue: "text-neg", due_today: "text-warn", scheduled: "text-info", partial: "text-warn", paid: "text-lime", canceled: "text-faint" };
 
 export function TxRowItem({ r, refs, showDue }: { r: TxRow; refs: FormRefs; showDue?: boolean }) {
-  const [tab, setTab] = useState<"info" | "edit" | "settle" | "refund">("info");
+  const [tab, setTab] = useState<"info" | "edit" | "settle" | "refund" | "history">("info");
   const st = obligationStatus(r, refs.today);
   const Icon = r.type === "income" ? ArrowDownLeft : r.type === "refund" ? Undo2 : r.type === "transfer" ? ArrowLeftRight : r.cardId ? CreditCard : r.type === "adjustment" ? SlidersHorizontal : ArrowUpRight;
   const sign = r.type === "income" || r.type === "refund" ? 1 : r.type === "transfer" ? 0 : r.type === "adjustment" ? Math.sign(r.amount) : -1;
@@ -37,8 +41,8 @@ export function TxRowItem({ r, refs, showDue }: { r: TxRow; refs: FormRefs; show
       </button>
     }>
       <div className="pb-2">
-        <div className="mb-4 flex gap-1.5">
-          {[["info", "Detalhes"], ...(refs.canWrite && r.type !== "card_payment" && r.type !== "adjustment" ? [["edit", "Editar"]] : []), ...(isPending && !r.cardId && refs.canWrite ? [["settle", r.type === "income" ? "Receber" : "Pagar"]] : []), ...(canRefund ? [["refund", "Estornar"]] : [])].map(([k, l]) => (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {[["info", "Detalhes"], ...(refs.canWrite && r.type !== "card_payment" && r.type !== "adjustment" ? [["edit", "Editar"]] : []), ...(isPending && !r.cardId && refs.canWrite ? [["settle", r.type === "income" ? "Receber" : "Pagar"]] : []), ...(canRefund ? [["refund", "Estornar"]] : []), ...(refs.canAudit ? [["history", "Histórico"]] : [])].map(([k, l]) => (
             <button key={k} type="button" data-active={tab === k} onClick={() => setTab(k as typeof tab)} className="chip">{l}</button>
           ))}
         </div>
@@ -46,6 +50,7 @@ export function TxRowItem({ r, refs, showDue }: { r: TxRow; refs: FormRefs; show
         {tab === "edit" && <Edit r={r} refs={refs} />}
         {tab === "settle" && <Settle r={r} refs={refs} />}
         {tab === "refund" && <Refund r={r} refs={refs} />}
+        {tab === "history" && <History r={r} refs={refs} />}
       </div>
     </Sheet>
   );
@@ -153,4 +158,18 @@ function Refund({ r, refs }: { r: TxRow; refs: FormRefs }) {
       <Submit className="w-full">Registrar estorno</Submit>
     </ActionForm>
   );
+}
+
+function History({ r, refs }: { r: TxRow; refs: FormRefs }) {
+  const [res, setRes] = useState<{ entries?: HistoryEntry[]; error?: string } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadEntityHistory(refs.ws, r.id)
+      .then((x) => { if (alive) setRes(x.ok ? { entries: x.entries } : { error: x.error }); })
+      .catch(() => { if (alive) setRes({ error: "Não foi possível carregar o histórico." }); });
+    return () => { alive = false; };
+  }, [refs.ws, r.id]);
+  if (!res) return <p className="flex items-center gap-2 text-[13.5px] text-muted"><Loader2 size={14} className="animate-spin" /> Carregando histórico…</p>;
+  if (res.error) return <p role="alert" className="text-[13.5px] text-neg">{res.error}</p>;
+  return <><p className="mb-3 text-[12.5px] text-faint">Registro automático e imutável: ninguém pode editar ou apagar este histórico.</p><HistoryList entries={res.entries ?? []} compact /></>;
 }

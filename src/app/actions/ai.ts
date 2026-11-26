@@ -12,7 +12,7 @@ import { summarize } from "@/lib/finance/ledger";
 import { monthEnd, monthStart, todayISO } from "@/lib/finance/dates";
 import { answerDeterministic } from "@/lib/ai/intents";
 import { buildFinancialContext } from "@/lib/ai/context";
-import { claude, consumeQuota, FALLBACK, MODEL, textOf } from "@/lib/ai/claude";
+import { claude, consumeQuota, FALLBACK, logAiFailure, MODEL, recordUsage, textOf } from "@/lib/ai/claude";
 
 export interface EntrySuggestion {
   type: "income" | "expense" | null;
@@ -59,12 +59,14 @@ export async function interpretEntry(wsId: string, text: string): Promise<{ ok: 
           installments: { type: ["integer", "null"] },
         },
       };
+      const t0 = Date.now();
       const msg = await ai.beta.messages.create({
         model: MODEL, max_tokens: 1024, ...FALLBACK,
         output_config: { effort: "low", format: { type: "json_schema", schema } },
         system: "Você extrai dados de um lançamento financeiro descrito em português do Brasil. Não invente valores: se o valor não estiver no texto, use null. A categoria deve ser exatamente um dos nomes listados ou null.",
         messages: [{ role: "user", content: `Hoje é ${today}.\nCategorias de despesa: ${categories.filter((c) => c.kind === "expense").map((c) => c.name).join(", ")}\nCategorias de receita: ${categories.filter((c) => c.kind === "income").map((c) => c.name).join(", ")}\n\nTexto: """${input.data}"""` }],
       });
+      await recordUsage("interpret", msg, Date.now() - t0);
       if (msg.stop_reason === "end_turn") {
         const j = JSON.parse(textOf(msg));
         const c2 = categories.find((c) => c.name === j.category);
@@ -77,7 +79,7 @@ export async function interpretEntry(wsId: string, text: string): Promise<{ ok: 
         };
       }
     } catch (e) {
-      console.error("interpretEntry: falha na IA, usando interpretação local", (e as Error).name);
+      logAiFailure("interpret", e); // segue com a interpretação local
     }
   }
   return { ok: true, suggestion: s };
@@ -105,21 +107,22 @@ export async function askAssistant(wsId: string, question: string, history: Chat
   const kind = ctx.ws.kind === "business" ? "business" : "personal";
   const deterministic = answerDeterministic(q.data, { kind, today: L.today, accounts: L.accounts, categories: L.categories, cards: L.cards, txs: L.txs, balances: L.balances, goals: goalsP, minCash: settings.min_cash ?? null, withdrawalLimit: settings.withdrawal_limit ?? null });
 
+  // Pergunta que o sistema sabe calcular: resposta exata, sem custo e sem gastar a cota da IA.
+  if (deterministic) return { answer: deterministic, engine: "local" };
+
   const ai = hasFeature(ctx.sub, "ai") ? claude() : null;
   if (ai && !(await consumeQuota())) {
-    return { answer: (deterministic ?? "Você atingiu o limite diário de perguntas abertas à IA.") + "\n\n(Limite diário da IA generativa atingido — respostas calculadas pelo sistema continuam disponíveis.)", engine: deterministic ? "local" : "none" };
+    return { answer: "Você atingiu o limite diário de perguntas abertas à IA. Perguntas que o sistema calcula (saldo, gastos por categoria, contas a pagar, fluxo de caixa, metas) continuam disponíveis.", engine: "none" };
   }
   if (!ai) {
-    return deterministic
-      ? { answer: deterministic, engine: "local" }
-      : { answer: "Ainda não sei responder essa pergunta com o motor local. Tente perguntas sobre gastos por categoria, maiores despesas, contas a pagar ou receber, saldo, fluxo de caixa, metas ou comparação com o mês passado.\n\n(Para perguntas abertas, a IA generativa precisa estar configurada pelo administrador da plataforma.)", engine: "none" };
+    return { answer: "Ainda não sei responder essa pergunta com o motor local. Tente perguntas sobre gastos por categoria, maiores despesas, contas a pagar ou receber, saldo, fluxo de caixa, metas ou comparação com o mês passado.\n\n(Para perguntas abertas, a IA generativa precisa estar configurada pelo administrador da plataforma.)", engine: "none" };
   }
   const spentNow = summarize(L.txs, monthStart(L.today), monthEnd(L.today), { includePending: true }).byCategory;
   const names = new Map(L.categories.map((c) => [c.id, c.name]));
   const fin = buildFinancialContext(kind, L, { goals: goalsP, budgets: (budgets ?? []).map((b) => ({ category: names.get(b.category_id) ?? "?", amount: toCents(b.amount), spent: spentNow.get(b.category_id) ?? 0 })), minCash: settings.min_cash ?? null, withdrawalLimit: settings.withdrawal_limit ?? null });
   const system = `Você é a Inteligência Innovai, analista financeira do ambiente ${kind === "personal" ? "pessoal" : "empresarial"} do usuário. Responda em português do Brasil, de forma clara, curta e prática.
 Regras obrigatórias:
-- Use SOMENTE os números do bloco <dados_financeiros> e do <calculo_do_sistema> quando presente. Nunca invente valores, lançamentos ou taxas.
+- Use SOMENTE os números do bloco <dados_financeiros>. Nunca invente valores, lançamentos ou taxas.
 - Se os dados não forem suficientes, diga exatamente o que falta.
 - Diferencie valores registrados de estimativas; projeções consideram apenas lançamentos cadastrados.
 - Ao recomendar, explique as premissas. Não dê recomendações de investimento específicas (ativos, corretoras).
@@ -127,15 +130,19 @@ Regras obrigatórias:
 - Valores em reais no formato R$ 1.234,56.`;
   const messages = [
     ...history.slice(-6).map((h) => ({ role: h.role, content: h.content.slice(0, 2000) })),
-    { role: "user" as const, content: `<dados_financeiros>\n${JSON.stringify(fin)}\n</dados_financeiros>${deterministic ? `\n<calculo_do_sistema>\n${deterministic}\n</calculo_do_sistema>` : ""}\n\nPergunta: ${q.data}` },
+    { role: "user" as const, content: `<dados_financeiros>\n${JSON.stringify(fin)}\n</dados_financeiros>\n\nPergunta: ${q.data}` },
   ];
   try {
+    const t0 = Date.now();
     const msg = await ai.beta.messages.create({ model: MODEL, max_tokens: 2000, ...FALLBACK, output_config: { effort: "medium" }, system, messages });
-    if (msg.stop_reason === "refusal") return { answer: deterministic ?? "Não consegui responder essa pergunta.", engine: deterministic ? "local" : "none" };
+    await recordUsage("assistant", msg, Date.now() - t0);
+    if (msg.stop_reason === "refusal") return { answer: "Não consegui responder essa pergunta. Tente reformular.", engine: "none" };
     const text = textOf(msg);
-    return { answer: text || deterministic || "Não consegui responder.", engine: "claude" };
+    // resposta cortada no limite de tamanho: avisa em vez de exibir um texto incompleto como definitivo
+    if (msg.stop_reason === "max_tokens") return { answer: (text ? text + "\n\n" : "") + "(Resposta interrompida por tamanho. Faça uma pergunta mais específica.)", engine: "claude" };
+    return text ? { answer: text, engine: "claude" } : { answer: "Não consegui responder. Tente reformular a pergunta.", engine: "none" };
   } catch (e) {
-    console.error("askAssistant: falha na IA", (e as Error).name);
-    return deterministic ? { answer: deterministic, engine: "local" } : { answer: "O serviço de IA está indisponível no momento. Tente novamente em instantes.", engine: "none" };
+    logAiFailure("assistant", e);
+    return { answer: "O serviço de IA está indisponível no momento. Tente novamente em instantes. Perguntas que o sistema calcula continuam funcionando.", engine: "none" };
   }
 }

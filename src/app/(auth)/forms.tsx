@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ActionForm, Submit } from "@/components/client";
-import { signIn, signUp, requestReset, updatePassword } from "@/app/actions/auth";
+import { signIn, signUp, requestReset, resendConfirmation, updatePassword } from "@/app/actions/auth";
 
 export function SignInForm({ next }: { next?: string }) {
   return (
@@ -40,11 +40,25 @@ export function ResetForm() {
   );
 }
 
+export function ResendConfirmationForm() {
+  return (
+    <details className="card mt-5 px-4 py-3">
+      <summary className="cursor-pointer text-[13.5px] text-muted">Não recebeu o e-mail de confirmação?</summary>
+      <div className="mt-3">
+        <ActionForm action={resendConfirmation} keepOpen>
+          <label className="block"><span className="label">E-mail do cadastro</span><input name="email" type="email" autoComplete="email" required className="input" /></label>
+          <Submit className="btn-secondary w-full" pendingText="Enviando…">Reenviar confirmação</Submit>
+        </ActionForm>
+      </div>
+    </details>
+  );
+}
+
 export function NewPasswordForm() {
   return (
     <ActionForm action={updatePassword}>
-      <label className="block"><span className="label">Nova senha</span><input name="password" type="password" autoComplete="new-password" minLength={8} required className="input" /></label>
-      <Submit className="w-full">Salvar nova senha</Submit>
+      <label className="block"><span className="label">Nova senha</span><input name="password" type="password" autoComplete="new-password" minLength={8} required className="input" /><span className="mt-1 block text-[12.5px] text-faint">Mínimo de 8 caracteres, com letras e números.</span></label>
+      <Submit className="w-full" pendingText="Salvando…">Salvar nova senha</Submit>
     </ActionForm>
   );
 }

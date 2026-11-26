@@ -7,6 +7,26 @@ import { fail, formObject, type ActionState } from "./_util";
 
 const safeNext = (n: string | undefined) => (n && n.startsWith("/") && !n.startsWith("//") ? n : "/inicio");
 
+/** Endereço público do app para links de e-mail. Prefira NEXT_PUBLIC_SITE_URL (não depende do cabeçalho da requisição). */
+async function siteUrl() {
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (env) return env;
+  const h = await headers();
+  return h.get("origin") ?? (h.get("host") ? `https://${h.get("host")}` : "");
+}
+
+/** Mesma regra de senha no cadastro e na redefinição. */
+const passwordRule = z.string().min(8, "A senha deve ter pelo menos 8 caracteres").max(72, "Use no máximo 72 caracteres")
+  .regex(/[A-Za-z]/, "Use letras e números").regex(/\d/, "Use letras e números");
+
+function authErrorMessage(error: { code?: string; status?: number; message: string }): string {
+  if (error.status === 429 || /rate limit/i.test(error.message)) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  if (error.code === "weak_password" || /pwned|leaked|weak/i.test(error.message)) return "Esta senha é fraca ou já apareceu em vazamentos de dados. Escolha outra.";
+  if (error.code === "same_password") return "A nova senha precisa ser diferente da atual.";
+  if (error.code === "session_not_found" || /session/i.test(error.message)) return "O link de redefinição expirou. Peça um novo link em “Esqueci minha senha”.";
+  return "Não foi possível concluir agora. Tente novamente.";
+}
+
 export async function signIn(_: ActionState, fd: FormData): Promise<ActionState> {
   const f = formObject(fd);
   const p = z.object({ email: z.string().email("E-mail inválido"), password: z.string().min(1, "Informe a senha") }).safeParse(f);
@@ -26,16 +46,17 @@ export async function signUp(_: ActionState, fd: FormData): Promise<ActionState>
   const p = z.object({
     name: z.string().trim().min(2, "Informe seu nome").max(80),
     email: z.string().email("E-mail inválido"),
-    password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres").regex(/[A-Za-z]/, "Use letras e números").regex(/\d/, "Use letras e números"),
+    password: passwordRule,
     terms: z.literal("on", { message: "Aceite os termos e a política de privacidade" }),
   }).safeParse(formObject(fd));
   if (!p.success) return fail(p.error);
   const sb = await createClient();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = await siteUrl();
   const { data, error } = await sb.auth.signUp({ email: p.data.email, password: p.data.password, options: { data: { full_name: p.data.name }, emailRedirectTo: `${origin}/auth/callback?next=/onboarding` } });
   if (error) {
     if (/registered/i.test(error.message)) return { error: "Este e-mail já possui conta." };
     if (error.status === 429 || /rate limit/i.test(error.message)) return { error: "Muitos cadastros neste momento. Aguarde alguns minutos e tente novamente." };
+    if (error.code === "weak_password" || /pwned|leaked|weak/i.test(error.message)) return { error: "Esta senha é fraca ou já apareceu em vazamentos de dados. Escolha outra." };
     return { error: "Não foi possível criar a conta agora. Tente novamente." };
   }
   // Supabase devolve usuário sem identidades quando o e-mail já existe (proteção contra enumeração)
@@ -54,17 +75,27 @@ export async function requestReset(_: ActionState, fd: FormData): Promise<Action
   const p = z.object({ email: z.string().email("E-mail inválido") }).safeParse(formObject(fd));
   if (!p.success) return fail(p.error);
   const sb = await createClient();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = await siteUrl();
   await sb.auth.resetPasswordForEmail(p.data.email, { redirectTo: `${origin}/auth/callback?next=/recuperar-senha/nova` });
   // resposta idêntica exista ou não o e-mail (evita enumeração)
   return { ok: true, message: "Se houver uma conta com este e-mail, você receberá um link para redefinir a senha." };
 }
 
 export async function updatePassword(_: ActionState, fd: FormData): Promise<ActionState> {
-  const p = z.object({ password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres") }).safeParse(formObject(fd));
+  const p = z.object({ password: passwordRule }).safeParse(formObject(fd));
   if (!p.success) return fail(p.error);
   const sb = await createClient();
   const { error } = await sb.auth.updateUser({ password: p.data.password });
-  if (error) return { error: error.message };
+  if (error) return { error: authErrorMessage(error) };
   redirect("/inicio");
+}
+
+/** Reenvia o e-mail de confirmação de cadastro. Resposta idêntica exista ou não a conta. */
+export async function resendConfirmation(_: ActionState, fd: FormData): Promise<ActionState> {
+  const p = z.object({ email: z.string().email("E-mail inválido") }).safeParse(formObject(fd));
+  if (!p.success) return fail(p.error);
+  const sb = await createClient();
+  const { error } = await sb.auth.resend({ type: "signup", email: p.data.email, options: { emailRedirectTo: `${await siteUrl()}/auth/callback?next=/onboarding` } });
+  if (error && (error.status === 429 || /rate limit/i.test(error.message))) return { error: "Aguarde alguns minutos antes de pedir outro e-mail." };
+  return { ok: true, message: "Se houver um cadastro pendente com este e-mail, enviamos um novo link de confirmação. Verifique também a caixa de spam." };
 }

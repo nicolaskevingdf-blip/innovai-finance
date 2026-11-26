@@ -102,11 +102,11 @@ npm run dev                   # http://localhost:3000
 ```
 
 ```bash
-npm test                      # motor financeiro + assistente (39 testes)
+npm test                      # motor financeiro, assistente e histórico (43 testes)
 npm run typecheck && npm run lint
-npm run test:db               # regras e segurança no banco local (15 verificações)
+npm run test:db               # regras, segurança e histórico no banco local (23 verificações)
 npm run build && npm start &  # depois:
-npm run test:e2e              # 10 cenários ponta a ponta no navegador
+npm run test:e2e              # 14 cenários ponta a ponta no navegador
 ```
 
 Teste de RLS em SQL puro (sem Docker, qualquer Postgres 15+):
@@ -119,9 +119,12 @@ psql -d banco_vazio -f supabase/tests/rls_test.sql
 ## Produção
 
 - App: https://innovai-finance.vercel.app (Vercel, funções em `gru1` — São Paulo)
-- Banco: Supabase `innovai-finance` (`iuxqxkyjbrekxhrodybv`, `sa-east-1`), migrações 0001–0007 aplicadas
+- Banco: Supabase `innovai-finance` (`iuxqxkyjbrekxhrodybv`, `sa-east-1`), migrações 0001–0008 aplicadas
 - Saúde: `GET /api/health`
 - Auditoria técnica: veja [AUDITORIA.md](AUDITORIA.md)
+- Operação (monitoramento, backup, custos da IA): [docs/OPERACAO.md](docs/OPERACAO.md)
+- Assinaturas (proposta Asaas): [docs/ASSINATURAS.md](docs/ASSINATURAS.md)
+- Beta: checklists e critérios em [docs/LANCAMENTO-BETA.md](docs/LANCAMENTO-BETA.md)
 - Deploy automático a cada push na `main`
 
 ## Publicar (do zero)

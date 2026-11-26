@@ -18,6 +18,8 @@ export interface FormRefs {
   categories: { id: string; name: string; kind: "income" | "expense"; parentId: string | null }[];
   contacts: { id: string; name: string; kind: "client" | "supplier" }[];
   canWrite: boolean;
+  /** administradores veem o histórico de alterações */
+  canAudit?: boolean;
 }
 
 type T = "expense" | "income" | "transfer";

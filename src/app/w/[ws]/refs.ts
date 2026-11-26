@@ -16,7 +16,7 @@ export const loadRefs = cache(async (ctx: WorkspaceCtx): Promise<FormRefs> => {
     ctx.ws.kind === "business" ? sb.from("contacts").select("id,name,kind").eq("workspace_id", id).eq("archived", false).order("name") : Promise.resolve({ data: [] as { id: string; name: string; kind: "client" | "supplier" }[] }),
   ]);
   return {
-    ws: id, kind: ctx.ws.kind, today: todayISO(), canWrite: ctx.canOperate,
+    ws: id, kind: ctx.ws.kind, today: todayISO(), canWrite: ctx.canOperate, canAudit: ctx.canAdmin,
     accounts: a.data ?? [], cards: c.data ?? [],
     categories: (k.data ?? []).map((x) => ({ id: x.id, name: x.name, kind: x.kind, parentId: x.parent_id })),
     contacts: (ct.data ?? []) as FormRefs["contacts"],

@@ -7,6 +7,7 @@ import { deleteWorkspace } from "@/app/actions/workspace";
 import { STATUS_LABEL } from "@/lib/plans";
 import { SEGMENTS } from "@/lib/templates";
 import { fmtDateTime } from "@/lib/finance/dates";
+import { ENTITY_LABEL } from "@/lib/history";
 import { SettingsForm } from "./form";
 
 export const metadata = { title: "Configurações" };
@@ -17,11 +18,16 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
   const sb = await createClient();
   const [{ data: plans }, { data: audit }] = await Promise.all([
     sb.from("plans").select("*").eq("audience", ctx.ws.kind === "business" ? "business" : "personal").order("sort"),
-    ctx.canAdmin ? sb.from("audit_log").select("action, entity, at, user_id").eq("workspace_id", ws).order("at", { ascending: false }).limit(15) : Promise.resolve({ data: [] }),
+    ctx.canAdmin ? sb.from("audit_log").select("id, action, entity, at, user_id, actor, after, before").eq("workspace_id", ws).order("at", { ascending: false }).limit(8) : Promise.resolve({ data: [] }),
   ]);
   const plan = plans?.find((p) => p.code === ctx.sub?.plan_code);
-  const ACTION: Record<string, string> = { insert: "criou", update: "alterou", delete: "excluiu" };
-  const ENTITY: Record<string, string> = { transactions: "lançamento", financial_accounts: "conta", credit_cards: "cartão", cash_closings: "fechamento de caixa", attachments: "documento" };
+  const who = (a: { user_id: string | null; actor: string | null }) => (a.user_id === ctx.userId ? "Você" : a.actor ?? "Membro");
+  const verb: Record<string, string> = { insert: "criou", update: "alterou", delete: "excluiu" };
+  const label = (a: { action: string; entity: string; after: Record<string, unknown> | null; before: Record<string, unknown> | null }) => {
+    const d = a.after ?? a.before ?? {};
+    const what = `${ENTITY_LABEL[a.entity] ?? a.entity}${typeof d.description === "string" ? ` “${d.description}”` : typeof d.name === "string" ? ` “${d.name}”` : ""}`;
+    return a.action === "insert" && d.type === "refund" ? `registrou estorno${typeof d.description === "string" ? ` “${d.description}”` : ""}` : `${verb[a.action] ?? a.action} ${what}`;
+  };
   return (
     <>
       <PageHeader title="Configurações" subtitle={`${ctx.ws.kind === "business" ? `Empresa · ${SEGMENTS.find((s) => s.value === ctx.ws.segment)?.label ?? ""}` : "Finanças pessoais"}`} />
@@ -54,8 +60,8 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
         </div>
       </div>
       {ctx.canAdmin && (audit ?? []).length > 0 && (
-        <Card className="mt-4"><CardHeader title="Atividades recentes" subtitle="Registro de auditoria (sem valores financeiros)" />
-          <div className="px-5 pb-4 pt-2">{audit!.map((a, i) => <div key={i} className="flex justify-between border-t border-line py-2 text-[13.5px] first:border-t-0"><span className="text-muted">{a.user_id === ctx.userId ? "Você" : "Um membro"} {ACTION[a.action] ?? a.action} {ENTITY[a.entity] ?? a.entity}</span><span className="text-faint">{fmtDateTime(a.at)}</span></div>)}</div>
+        <Card className="mt-4"><CardHeader title="Atividades recentes" subtitle="Histórico automático e imutável" action={<Link href={`${ctx.base}/historico`} className="text-[13px] font-medium text-muted hover:text-fg">Ver histórico completo</Link>} />
+          <div className="px-5 pb-4 pt-2">{audit!.map((a) => <div key={a.id} className="flex justify-between gap-3 border-t border-line py-2 text-[13.5px] first:border-t-0"><span className="min-w-0 truncate text-muted">{who(a)} {label(a)}</span><span className="shrink-0 text-faint">{fmtDateTime(a.at)}</span></div>)}</div>
         </Card>
       )}
     </>

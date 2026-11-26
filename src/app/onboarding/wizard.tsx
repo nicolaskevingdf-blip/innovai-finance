@@ -71,7 +71,7 @@ export function Wizard({ initialKind, fullName, first, hasPersonal }: { initialK
       {/* Passo 1 — identificação */}
       <Hidden show={step === 1 && kind === "personal"}>
         <h2 className="text-2xl font-semibold tracking-tight">Sobre você</h2>
-        {first && <label className="block"><span className="label">Como podemos te chamar?</span><input name={kind === "personal" ? "full_name" : "_f1"} defaultValue={fullName} className="input" /></label>}
+        {first && !fullName && <label className="block"><span className="label">Como podemos te chamar?</span><input name={kind === "personal" ? "full_name" : "_f1"} defaultValue={fullName} className="input" /></label>}
         <label className="block"><span className="label">Nome do ambiente</span><input name={kind === "personal" ? "name" : "_n1"} defaultValue={hasPersonal ? "Finanças da casa" : "Minhas finanças"} className="input" /></label>
         <div><span className="label">Quais são seus objetivos? <span className="text-faint">(opcional)</span></span><Chips name={kind === "personal" ? "objectives" : "_o1"} options={PERSONAL_GOALS} max={5} /></div>
       </Hidden>
@@ -83,7 +83,7 @@ export function Wizard({ initialKind, fullName, first, hasPersonal }: { initialK
           <select name="segment" className="input" defaultValue="general">{SEGMENTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
           <span className="mt-1 block text-[12.5px] text-faint">Usamos o segmento para sugerir categorias adequadas. Tudo pode ser personalizado.</span>
         </label>
-        {first && <label className="block"><span className="label">Seu nome</span><input name={kind === "business" ? "full_name" : "_f2"} defaultValue={fullName} className="input" /></label>}
+        {first && !fullName && <label className="block"><span className="label">Seu nome</span><input name={kind === "business" ? "full_name" : "_f2"} defaultValue={fullName} className="input" /></label>}
       </Hidden>
 
       {/* Passo 2 — perfil financeiro */}

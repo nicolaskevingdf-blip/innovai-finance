@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowDownLeft, ArrowUpRight, Building2 } from "lucide-react";
 import { Badge, Card, CardHeader, Empty, Help, MiniStat, Money, Notice, Progress, SectionTitle, Stat } from "@/components/ui";
 import { BalanceArea, MonthlyBars } from "@/components/charts-lazy";
+import { FirstSteps } from "@/components/first-steps";
 import { InsightCard } from "@/components/insight-card";
 import { loadLedger } from "@/lib/data/ledger";
 import { loadInsights } from "@/lib/data/insights";
@@ -51,7 +52,12 @@ export async function BusinessDashboard({ ctx }: { ctx: WorkspaceCtx }) {
           <h1 className="truncate text-[21px] font-bold leading-tight sm:text-[28px]">{ctx.ws.trade_name || ctx.ws.name}</h1>
         </div>
       </header>
-      {!hasData && <Notice>Registre vendas, despesas e contas a pagar no botão <b>+</b> para acompanhar o desempenho do negócio.</Notice>}
+      <FirstSteps steps={[
+        { label: "Conta da empresa configurada", hint: "Banco e caixa da loja, com o saldo atual.", done: L.accounts.length > 0, href: `${ctx.base}/contas` },
+        { label: "Registre a primeira venda", hint: "Toque no + e escolha Receita, ou use Vendas do dia no Caixa.", done: L.txs.some((t) => t.type === "income"), href: `${ctx.base}/caixa` },
+        { label: "Cadastre uma conta a pagar", hint: "Aluguel, fornecedores, impostos: o fluxo de caixa passa a prever os vencimentos.", done: L.txs.some((t) => t.type === "expense" && t.status === "pending"), href: `${ctx.base}/financeiro?aba=pagar`, optional: true },
+        { label: "Defina o caixa mínimo", hint: "Para ser alertado quando o caixa projetado ficar abaixo do seguro.", done: st.min_cash != null, href: `${ctx.base}/configuracoes`, optional: true },
+      ]} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* 2. Resultado financeiro */}

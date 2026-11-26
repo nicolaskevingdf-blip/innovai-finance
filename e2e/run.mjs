@@ -47,6 +47,11 @@ await step("cadastro e onboarding pessoal", async () => {
   await p.waitForURL(/\/w\/[0-9a-f-]{36}$/, { timeout: 30000 });
   wsP = p.url();
 });
+await step("primeiros passos guiam o novo usuário", async () => {
+  await p.waitForSelector("text=Primeiros passos");
+  const body = await text("main");
+  expect(body.includes("Registre seu primeiro lançamento"), "guia deveria pedir o primeiro lançamento");
+});
 await step("lançamento por texto (interpretação + confirmação)", async () => {
   await openSheet("Novo lançamento");
   await p.fill(`${dialog} input[placeholder^="Ex.: gastei"]`, "Gastei 85 reais abastecendo minha moto hoje");
@@ -92,6 +97,34 @@ await step("saldos e fatura refletem o estorno (dashboard e cartões)", async ()
   expect((await text("main")).includes("R$ 915,00"), "saldo deveria ser R$ 915,00 (1000 − 85)");
 });
 
+console.log("Histórico financeiro");
+await step("edição aparece no histórico com antes → depois e autor", async () => {
+  await p.goto(wsP + "/movimentacoes");
+  await p.getByText("Fone (1/3)", { exact: true }).first().click(); await p.waitForSelector(dialog);
+  await p.click(`${dialog} button.chip:has-text("Editar")`);
+  await p.fill(`${dialog} textarea[name=notes]`, "nota e2e");
+  await p.click(`${dialog} button:has-text("Salvar alterações")`);
+  await p.waitForTimeout(1500);
+  if (!(await p.$(dialog))) { await p.getByText("Fone (1/3)", { exact: true }).first().click(); await p.waitForSelector(dialog); }
+  await p.click(`${dialog} button.chip:has-text("Histórico")`);
+  await p.waitForSelector(`${dialog} >> text=Alterou lançamento`, { timeout: 15000 });
+  const h = await text(dialog);
+  expect(h.includes("nota e2e") && h.includes("Observações") && h.includes("por Você"), "histórico sem campo/valor/autor");
+  expect(h.includes("Criou lançamento"), "histórico sem a criação");
+  await p.keyboard.press("Escape");
+});
+await step("página de histórico lista edições e estornos", async () => {
+  await p.goto(wsP + "/historico"); await p.waitForSelector("text=Histórico de alterações");
+  const body = await text("main");
+  expect(body.includes("Registrou estorno") && body.includes("Alterou lançamento"), "histórico do ambiente incompleto");
+});
+await step("saúde do app inclui o banco", async () => {
+  const r = await fetch(BASE + "/api/health"); const j = await r.json();
+  expect(r.status === 200 && j.auth === "ok" && j.banco === "ok", "health: " + JSON.stringify(j));
+  const c = await fetch(BASE + "/api/client-error", { method: "POST", body: JSON.stringify({ name: "Teste", path: "/x" }) });
+  expect(c.status === 204, "registro de erro do cliente deveria aceitar");
+});
+
 console.log("Fluxo empresarial");
 await step("onboarding empresa + vendas do dia + conta parcial + fechamento", async () => {
   await p.goto(BASE + "/onboarding?tipo=empresa");
@@ -127,7 +160,7 @@ console.log("Responsividade (320–430px)");
 await step("sem rolagem horizontal e sem valores cortados", async () => {
   const m = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() });
   const mp = await m.newPage();
-  const paths = ["", "/movimentacoes", "/planejamento", "/metas", "/inteligencia", "/cartoes", "/relatorios", "/configuracoes"];
+  const paths = ["", "/movimentacoes", "/planejamento", "/metas", "/inteligencia", "/cartoes", "/relatorios", "/configuracoes", "/historico"];
   const bad = [];
   for (const w of [320, 360, 375, 390, 414, 430]) {
     await mp.setViewportSize({ width: w, height: 800 });

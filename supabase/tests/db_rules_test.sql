@@ -33,6 +33,30 @@ begin
   q := public.consume_ai_quota(2); q := public.consume_ai_quota(2) and q; 
   insert into r values ('cota de IA permite até o limite', q, '');
   insert into r values ('cota de IA bloqueia acima do limite', not public.consume_ai_quota(2), '');
+  -- histórico financeiro: criação, edição (antes/depois e campos) e exclusão
+  select count(*) into n from audit_log where entity_id = p and action = 'insert' and after->>'amount' = '300.00';
+  insert into r values ('histórico registra criação com valor', n = 1, n::text);
+  update transactions set amount = 350, description = 'Compra editada' where id = p;
+  select count(*) into n from audit_log where entity_id = p and action = 'update'
+    and changed = array['amount','description'] and before->>'amount' = '300.00' and after->>'amount' = '350.00' and actor is not null;
+  insert into r values ('histórico registra edição com antes/depois e autor', n = 1, n::text);
+  update transactions set description = 'Compra editada' where id = p;
+  select count(*) into n from audit_log where entity_id = p and action = 'update';
+  insert into r values ('edição sem mudança não gera registro', n = 1, n::text);
+  update audit_log set actor = 'forjado' where entity_id = p; get diagnostics n = row_count;
+  insert into r values ('usuário não altera o histórico', n = 0, n::text);
+  delete from audit_log where entity_id = p; get diagnostics n = row_count;
+  insert into r values ('usuário não apaga o histórico', n = 0, n::text);
+  declare ws3 uuid; t3 uuid; begin
+    ws3 := public.create_workspace('personal','Temporário');
+    insert into financial_accounts (workspace_id,name,type,opening_balance) values (ws3,'Conta','digital',0) returning id into a1;
+    insert into transactions (workspace_id,type,amount,description,account_id,date,competence_date,paid_at) values (ws3,'income',10,'x',a1,current_date,current_date,current_date) returning id into t3;
+    delete from transactions where id = t3;
+    select count(*) into n from audit_log where entity_id = t3 and action = 'delete' and before->>'amount' = '10.00';
+    insert into r values ('histórico registra exclusão com valor anterior', n = 1, n::text);
+    delete from workspaces where id = ws3; get diagnostics n = row_count;
+    insert into r values ('excluir ambiente inteiro (LGPD) continua funcionando', n = 1, n::text);
+  exception when others then insert into r values ('excluir ambiente inteiro (LGPD) continua funcionando', false, sqlerrm); end;
   -- outro usuário
   perform set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
   select count(*) into n from transactions; insert into r values ('B não lê lançamentos de A', n = 0, n::text);
@@ -62,6 +86,12 @@ begin
     insert into r values ('convite acima do limite do plano bloqueado', false, 'aceitou');
   exception when others then insert into r values ('convite acima do limite do plano bloqueado', true, sqlerrm); end;
 end $$;
-select case when ok then 'PASS' else 'FAIL' end as resultado, k as teste from r;
+-- Nem o dono do banco altera o histórico pela aplicação (trigger append-only)
+reset role;
+do $$ begin
+  update audit_log set actor = 'forjado' where id = (select max(id) from audit_log);
+  insert into r values ('histórico imutável mesmo sem RLS', false, 'alterou');
+exception when others then insert into r values ('histórico imutável mesmo sem RLS', true, sqlerrm); end $$;
+select case when ok then 'PASS' else 'FAIL' end as resultado, k as teste, case when ok then '' else detail end as detalhe from r;
 select count(*) filter (where not ok) as falhas from r;
 rollback;
