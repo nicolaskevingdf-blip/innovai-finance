@@ -114,7 +114,13 @@ psql -d banco_vazio -f supabase/tests/auth_shim.sql -f supabase/migrations/20261
 psql -d banco_vazio -f supabase/tests/rls_test.sql
 ```
 
-## Publicar
+## Produção
+
+- App: https://innovai-finance.vercel.app (Vercel, funções em `gru1` — São Paulo)
+- Banco: Supabase `innovai-finance` (`iuxqxkyjbrekxhrodybv`, `sa-east-1`), migrações 0001–0004 aplicadas
+- Deploy automático a cada push na `main`
+
+## Publicar (do zero)
 
 1. Crie um projeto Supabase (região `sa-east-1` recomendada para LGPD/latência).
 2. `npx supabase link --project-ref <ref>` e `npx supabase db push` para aplicar as migrações.
