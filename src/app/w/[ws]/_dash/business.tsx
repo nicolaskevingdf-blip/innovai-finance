@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Card, CardHeader, Empty, Money, Notice, PageHeader, Progress, Stat } from "@/components/ui";
+import { ArrowDownLeft, ArrowUpRight, Building2 } from "lucide-react";
+import { Badge, Card, CardHeader, Empty, Help, MiniStat, Money, Notice, Progress, SectionTitle, Stat } from "@/components/ui";
 import { BalanceArea, MonthlyBars } from "@/components/charts";
 import { InsightCard } from "@/components/insight-card";
 import { loadLedger } from "@/lib/data/ledger";
@@ -7,9 +8,12 @@ import { loadInsights } from "@/lib/data/insights";
 import { businessSnapshot } from "@/lib/finance/snapshot";
 import { forecastItems, projectCashflow } from "@/lib/finance/cashflow";
 import { addDays, addMonths, fmtDate, fmtDayMonth, fmtMonth, monthEnd, monthStart } from "@/lib/finance/dates";
+import { formatBRL } from "@/lib/finance/money";
 import { totalsByGroup, summarize } from "@/lib/finance/ledger";
 import type { WorkspaceCtx } from "@/lib/data/workspace";
 import { SEGMENTS } from "@/lib/templates";
+
+const link = "text-[13px] font-medium text-muted hover:text-fg";
 
 export async function BusinessDashboard({ ctx }: { ctx: WorkspaceCtx }) {
   const L = await loadLedger(ctx.ws.id);
@@ -26,91 +30,101 @@ export async function BusinessDashboard({ ctx }: { ctx: WorkspaceCtx }) {
     return { label: fmtMonth(m), income: s.income, expense: g.cost + g.fixed + g.variable + g.other + g.personal + g.uncategorized };
   });
   const segment = SEGMENTS.find((s) => s.value === ctx.ws.segment)?.label;
-  const pct = (a: number, p: number) => (p ? `${a >= p ? "+" : ""}${Math.round(((a - p) / p) * 100)}% vs mês anterior` : undefined);
+  const vs = (a: number, p: number) => (p ? `${a >= p ? "+" : ""}${Math.round(((a - p) / Math.abs(p)) * 100)}% vs mês anterior` : undefined);
   const hasData = L.txs.length > 0;
+  const toReceive = b.revenue - b.received;
+  const breakdown = [
+    { label: "Custos operacionais", value: b.costs, hint: "Mercadorias, insumos, embalagens" },
+    { label: "Despesas fixas e variáveis", value: b.expenses, hint: "Aluguel, salários, taxas, marketing…" },
+    { label: "Investimentos", value: b.investments, hint: "Fora do resultado operacional" },
+    { label: "Retiradas do proprietário", value: b.withdrawals, hint: st.withdrawal_limit ? `Limite: ${formatBRL(st.withdrawal_limit)}` : "Defina um limite em Configurações" },
+  ];
+  const maxBreak = Math.max(1, ...breakdown.map((x) => x.value));
 
   return (
-    <>
-      <PageHeader eyebrow={`${segment ?? "Empresa"} · ${fmtMonth(L.today, true)}`} title={ctx.ws.trade_name || ctx.ws.name} subtitle={hasData ? undefined : "Registre vendas, despesas e contas a pagar para ver o desempenho do negócio."} />
+    <div className="space-y-6 sm:space-y-7">
+      {/* 1. Identificação da empresa */}
+      <header className="flex items-center gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-lime-soft text-lime sm:size-12"><Building2 size={20} /></span>
+        <div className="min-w-0">
+          <div className="eyebrow mb-0.5 truncate">{segment ?? "Empresa"} · {fmtMonth(L.today, true)}</div>
+          <h1 className="truncate text-[21px] font-bold leading-tight sm:text-[28px]">{ctx.ws.trade_name || ctx.ws.name}</h1>
+        </div>
+      </header>
+      {!hasData && <Notice>Registre vendas, despesas e contas a pagar no botão <b>+</b> para acompanhar o desempenho do negócio.</Notice>}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 sm:p-6 lg:col-span-2">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Stat size="lg" label="Saldo atual" value={b.balance} tone="auto" help="Soma dos saldos das contas da empresa (bancos e caixa), com base nos lançamentos efetivados." />
-            <Stat size="lg" label="Capital de giro (30 dias)" value={b.workingCapital30} tone="auto" estimate help="Saldo atual + valores a receber em 30 dias − contas a pagar em 30 dias (inclui vencidos). Mostra a folga de caixa no curto prazo." />
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-t border-line pt-5 sm:grid-cols-3">
-            <Stat label="Faturamento registrado" value={b.revenue} sub={pct(b.revenue, b.prev.revenue)} help="Vendas e serviços lançados no mês (competência), recebidos ou não." />
-            <Stat label="Recebido" value={b.received} tone="lime" help="Dinheiro que efetivamente entrou nas contas no mês." />
-            <Stat label="Custos" value={b.costs} help="Mercadorias, matéria-prima, insumos e embalagens lançados no mês." />
-            <Stat label="Despesas" value={b.expenses} help="Despesas fixas e variáveis do mês. Não inclui investimentos nem retiradas." />
-            <Stat label="Resultado estimado" value={b.estimatedResult} tone="auto" estimate sub={pct(b.estimatedResult, b.prev.estimatedResult)} help="Faturamento − custos − despesas, por competência. Não é lucro contábil oficial: depende de tudo estar lançado." />
-            <Stat label="Resultado de caixa" value={b.cashResult} tone="auto" help="Recebido − pago no mês (regime de caixa). Inclui pagamento de faturas." />
+        {/* 2. Resultado financeiro */}
+        <Card className="relative overflow-hidden p-5 sm:p-6 lg:col-span-2">
+          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-lime/10 blur-3xl" />
+          <Stat size="xl" label="Resultado estimado do mês" value={b.estimatedResult} tone="auto" estimate sub={vs(b.estimatedResult, b.prev.estimatedResult)}
+            help="Faturamento − custos − despesas, por competência. Não é lucro contábil oficial: depende de tudo estar lançado. Retiradas e investimentos ficam de fora." />
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-line pt-4">
+            <Stat size="sm" label="Resultado de caixa" value={b.cashResult} tone="auto" help="Recebido − pago no mês (regime de caixa). Inclui pagamento de faturas." />
+            <Stat size="sm" label="Faturamento registrado" value={b.revenue} sub={vs(b.revenue, b.prev.revenue)} help="Vendas e serviços lançados no mês, recebidos ou não." />
           </div>
         </Card>
-        <div className="grid gap-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between"><span className="eyebrow">Contas a pagar</span><Link href={`${ctx.base}/financeiro?aba=pagar`} className="text-[12.5px] text-muted hover:text-fg">Abrir</Link></div>
-            <div className="num mt-2 text-[22px] font-semibold"><Money c={b.payables.open} /></div>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-[12px] text-faint">
-              <div><div className={b.payables.overdue ? "text-neg" : ""}><Money c={b.payables.overdue} /></div>vencido</div>
-              <div><div className="text-fg/80"><Money c={b.payables.next7} /></div>7 dias</div>
-              <div><div className="text-fg/80"><Money c={b.payables.next30} /></div>30 dias</div>
-            </div>
-          </Card>
-          <Card className="p-5">
-            <div className="flex items-center justify-between"><span className="eyebrow">Contas a receber</span><Link href={`${ctx.base}/financeiro?aba=receber`} className="text-[12.5px] text-muted hover:text-fg">Abrir</Link></div>
-            <div className="num mt-2 text-[22px] font-semibold text-lime"><Money c={b.receivables.open} /></div>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-[12px] text-faint">
-              <div><div className={b.receivables.overdue ? "text-warn" : ""}><Money c={b.receivables.overdue} /></div>em atraso</div>
-              <div><div className="text-fg/80"><Money c={b.receivables.next7} /></div>7 dias</div>
-              <div><div className="text-fg/80"><Money c={b.receivables.next30} /></div>30 dias</div>
-            </div>
-          </Card>
+        {/* 3. Entradas e saídas · 4. Saldo */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
+          <MiniStat label="Entradas" value={b.received} tone="lime" icon={<ArrowDownLeft size={15} className="text-lime" />} sub="recebido no mês" />
+          <MiniStat label="Saídas" value={b.paidOut} icon={<ArrowUpRight size={15} />} sub="pago no mês" />
+          <div className="card col-span-2 grid grid-cols-2 gap-4 p-4 lg:col-span-1">
+            <Stat size="sm" label="Saldo atual" value={b.balance} tone="auto" help="Soma das contas da empresa (bancos e caixa), com base nos lançamentos efetivados." />
+            <Stat size="sm" label="Capital de giro 30d" value={b.workingCapital30} tone="auto" help="Saldo + a receber em 30 dias − a pagar em 30 dias (inclui vencidos)." />
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-5">
+      {/* 5. Contas a pagar e a receber */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        {([["pagar", "Contas a pagar", b.payables, "neg"], ["receber", "Contas a receber", b.receivables, "warn"]] as const).map(([k, title, o, overTone]) => (
+          <Link key={k} href={`${ctx.base}/financeiro?aba=${k}`} className="card block p-4 transition hover:border-line-strong sm:p-5">
+            <div className="flex items-center justify-between gap-2"><span className="eyebrow">{title}</span>{o.overdue > 0 && <Badge tone={overTone}>{k === "pagar" ? "vencido" : "em atraso"} <Money c={o.overdue} /></Badge>}</div>
+            <Money c={o.open} className={`mt-2 block text-[22px] font-semibold ${k === "receber" ? "text-lime" : ""}`} />
+            <div className="mt-2 flex gap-4 text-[12.5px] text-faint"><span>7 dias <Money c={o.next7} className="text-fg/80" /></span><span>30 dias <Money c={o.next30} className="text-fg/80" /></span></div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* 6. Fluxo de caixa */}
         <Card className="lg:col-span-3">
-          <CardHeader title="Caixa projetado — 60 dias" subtitle={`Menor saldo: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(proj.lowest.balance / 100)} em ${fmtDate(proj.lowest.date)} · baseado em contas cadastradas`} action={<Link href={`${ctx.base}/fluxo`} className="text-[13px] text-muted hover:text-fg">Detalhar</Link>} />
-          <div className="px-3 pb-4 pt-3"><BalanceArea data={proj.buckets.map((x) => ({ label: fmtDayMonth(x.start), balance: x.closing }))} min={st.min_cash ?? null} /></div>
-          {st.min_cash == null && <div className="px-5 pb-5"><Notice>Defina um <Link href={`${ctx.base}/configuracoes`} className="underline">caixa mínimo de segurança</Link> para receber alertas de risco.</Notice></div>}
+          <CardHeader title="Fluxo de caixa — 60 dias" subtitle={<>Menor saldo <Money c={proj.lowest.balance} tone="auto" /> em {fmtDate(proj.lowest.date)}</>} action={<Link href={`${ctx.base}/fluxo`} className={link}>Detalhar</Link>} />
+          <div className="px-4 pb-4 pt-3 sm:px-5"><BalanceArea data={proj.buckets.map((x) => ({ label: fmtDayMonth(x.start), balance: x.closing }))} min={st.min_cash ?? null} /></div>
+          {st.min_cash == null && <div className="px-4 pb-4 sm:px-5"><Notice>Defina um <Link href={`${ctx.base}/configuracoes`} className="underline">caixa mínimo de segurança</Link> para receber alertas de risco.</Notice></div>}
         </Card>
+        {/* 7. Faturamento */}
         <Card className="lg:col-span-2">
-          <CardHeader title="Faturamento x custos e despesas" subtitle="Por competência, últimos 6 meses" />
-          <div className="px-3 pb-4 pt-3">{hasData ? <MonthlyBars data={series} incomeLabel="Faturamento" expenseLabel="Custos + despesas" /> : <Empty title="Sem histórico ainda" />}</div>
-        </Card>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="p-5">
-          <div className="eyebrow">Retiradas do proprietário (mês)</div>
-          <div className="num mt-2 text-[22px] font-semibold"><Money c={b.withdrawals} /></div>
-          {st.withdrawal_limit ? (<><Progress className="mt-3" pct={(b.withdrawals / st.withdrawal_limit) * 100} tone={b.withdrawals > st.withdrawal_limit ? "neg" : "lime"} /><div className="mt-1.5 text-[12.5px] text-faint">Limite definido: <Money c={st.withdrawal_limit} /></div></>)
-            : <p className="mt-2 text-[13px] text-muted">Defina um limite mensal em <Link href={`${ctx.base}/configuracoes`} className="underline">Configurações</Link> para separar melhor empresa e proprietário.</p>}
-        </Card>
-        <Card className="p-5">
-          <div className="eyebrow">Investimentos no negócio (mês)</div>
-          <div className="num mt-2 text-[22px] font-semibold"><Money c={b.investments} /></div>
-          <p className="mt-2 text-[13px] text-muted">Equipamentos, reformas e expansão ficam fora do resultado operacional.</p>
-        </Card>
-        <Card className="p-5">
-          <div className="eyebrow">Atalhos</div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link href={`${ctx.base}/caixa`} className="btn-secondary btn-sm">Fechar caixa</Link>
-            <Link href={`${ctx.base}/financeiro?aba=pagar`} className="btn-secondary btn-sm">A pagar</Link>
-            <Link href={`${ctx.base}/relatorios`} className="btn-secondary btn-sm">Relatórios</Link>
-            <Link href={`${ctx.base}/inteligencia`} className="btn-secondary btn-sm">Perguntar à IA</Link>
+          <CardHeader title="Faturamento" subtitle="Competência, últimos 6 meses" />
+          <div className="grid grid-cols-2 gap-3 px-4 pt-4 sm:px-5">
+            <div><div className="text-[12px] text-faint">Recebido</div><Money c={b.received} className="text-[15px] font-semibold text-lime" /></div>
+            <div><div className="flex items-center gap-1 text-[12px] text-faint">Ainda a receber <Help>Parte do faturamento do mês que ainda não entrou no caixa (cartão de crédito, aplicativos, prazo).</Help></div><Money c={Math.max(0, toReceive)} className="text-[15px] font-semibold" /></div>
           </div>
+          <div className="px-4 pb-4 pt-4 sm:px-5">{hasData ? <MonthlyBars data={series} incomeLabel="Faturamento" expenseLabel="Custos + despesas" /> : <Empty title="Sem histórico ainda" />}</div>
         </Card>
       </div>
 
+      {/* 8. Despesas */}
+      <Card>
+        <CardHeader title="Para onde foi o dinheiro" subtitle="Saídas do mês por grupo (competência)" action={<Link href={`${ctx.base}/relatorios`} className={link}>Relatórios</Link>} />
+        <ul className="grid gap-x-8 px-4 pb-5 pt-3 sm:grid-cols-2 sm:px-5">
+          {breakdown.map((x) => (
+            <li key={x.label} className="border-t border-line py-3 first:border-t-0 sm:[&:nth-child(2)]:border-t-0">
+              <div className="flex items-center justify-between gap-3 text-[14px]"><span className="truncate">{x.label}</span><Money c={x.value} className="shrink-0 font-medium" /></div>
+              <Progress className="mt-2" pct={(x.value / maxBreak) * 100} tone={x.label.startsWith("Retiradas") && st.withdrawal_limit && x.value > st.withdrawal_limit ? "neg" : "lime"} />
+              <div className="mt-1 text-[12px] text-faint">{x.hint}</div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
+      {/* 9. Insights */}
       {insights.length > 0 && (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-semibold">Inteligência Innovai</h2><Link href={`${ctx.base}/inteligencia`} className="text-[13px] text-muted hover:text-fg">Ver tudo</Link></div>
+        <section>
+          <SectionTitle title="Inteligência Innovai" action={<Link href={`${ctx.base}/inteligencia`} className={link}>Ver tudo</Link>} />
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">{insights.slice(0, 3).map((i) => <InsightCard key={i.key} i={i} ws={ctx.ws.id} compact />)}</div>
         </section>
       )}
-    </>
+    </div>
   );
 }

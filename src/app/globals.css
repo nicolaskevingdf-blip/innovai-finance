@@ -1,72 +1,103 @@
 @import "tailwindcss";
 
-/* Identidade Innovai: preto como base, verde-lima para destaque, branco e cinzas. */
+/*
+ * Design tokens — identidade oficial Innovai
+ * Verde-limão #A6FF00 · Preto #0B0B0B · Grafite #1E1E1E · Branco #FFFFFF
+ * Títulos: Montserrat (peso forte) · Textos: Inter
+ * Todas as cores da interface derivam destes tokens.
+ */
 @theme {
-  --color-bg: #050505;
-  --color-surface: #0d0d0e;
-  --color-surface-2: #141416;
-  --color-surface-3: #1c1c1f;
-  --color-line: #232327;
-  --color-line-strong: #34343a;
-  --color-fg: #f4f4f5;
-  --color-muted: #9a9aa2;
-  --color-faint: #63636b;
-  --color-lime: #c6f432;
-  --color-lime-strong: #b4e31c;
-  --color-lime-ink: #0b0f00;
-  --color-lime-soft: rgb(198 244 50 / 0.12);
+  /* Base */
+  --color-bg: #0b0b0b;          /* Preto oficial */
+  --color-surface: #131313;     /* cartões */
+  --color-surface-2: #1e1e1e;   /* Grafite oficial — campos e elementos elevados */
+  --color-surface-3: #282828;   /* hover / pressionado */
+  --color-line: #232323;
+  --color-line-strong: #353535;
+  /* Texto */
+  --color-fg: #ffffff;          /* Branco oficial */
+  --color-muted: #a3a3a3;
+  --color-faint: #6b6b6b;
+  /* Marca */
+  --color-lime: #a6ff00;        /* Verde-limão oficial */
+  --color-lime-strong: #95e600;
+  --color-lime-ink: #0b0b0b;
+  --color-lime-soft: rgb(166 255 0 / 0.1);
+  /* Estados */
   --color-neg: #ff6b5e;
   --color-neg-soft: rgb(255 107 94 / 0.12);
   --color-warn: #f5b83d;
   --color-warn-soft: rgb(245 184 61 / 0.12);
   --color-info: #8ab4ff;
   --color-info-soft: rgb(138 180 255 / 0.12);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --radius-card: 1.1rem;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-montserrat), var(--font-inter), ui-sans-serif, sans-serif;
+
+  --radius-card: 1.25rem;
   --animate-fade-up: fade-up 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-sheet: sheet-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-sheet: sheet-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
+@keyframes shimmer { 100% { transform: translateX(100%); } }
 
 :root { color-scheme: dark; }
 html, body { background: var(--color-bg); color: var(--color-fg); }
-body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
-.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.01em; }
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.015em; }
 ::selection { background: var(--color-lime); color: var(--color-lime-ink); }
 :focus-visible { outline: 2px solid var(--color-lime); outline-offset: 2px; border-radius: 6px; }
 
-@utility card { @apply rounded-[var(--radius-card)] border border-line bg-surface; }
-@utility input { @apply h-11 w-full rounded-xl border border-line bg-surface-2 px-3.5 text-[15px] text-fg placeholder:text-faint outline-none transition focus:border-lime/60 focus:bg-surface-3 disabled:opacity-50; }
-@utility label { @apply mb-1.5 block text-[13px] font-medium text-muted; }
-@utility btn { @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-medium whitespace-nowrap transition select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-lime text-lime-ink hover:bg-lime-strong; }
-@utility btn-secondary { @apply btn border border-line bg-surface-2 text-fg hover:border-line-strong hover:bg-surface-3; }
-@utility btn-ghost { @apply btn text-muted hover:bg-surface-2 hover:text-fg; }
-@utility btn-danger { @apply btn border border-neg/30 bg-neg-soft text-neg hover:bg-neg/20; }
-@utility btn-sm { @apply h-9 rounded-lg px-3 text-sm; }
-@utility chip { @apply inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3.5 text-sm text-muted transition hover:text-fg; }
-@utility eyebrow { @apply text-[12px] font-medium uppercase tracking-[0.08em] text-faint; }
+/* Itens de grid/flex nunca devem forçar largura maior que a coluna (evita rolagem horizontal) */
+.grid > * { min-width: 0; }
 
-textarea.input { height: auto; padding-top: 0.625rem; padding-bottom: 0.625rem; }
+/* ---------- Componentes base ---------- */
+@utility card { @apply rounded-[var(--radius-card)] border border-line bg-surface; }
+/* 16px no celular evita o zoom automático do iOS ao focar o campo */
+@utility input { @apply h-12 w-full rounded-xl border border-line bg-surface-2 px-3.5 text-[16px] text-fg placeholder:text-faint outline-none transition focus:border-lime/70 focus:bg-surface-3 disabled:opacity-50 sm:h-11 sm:text-[15px]; }
+@utility label { @apply mb-1.5 block text-[13px] font-medium text-muted; }
+@utility btn { @apply inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold whitespace-nowrap transition select-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 sm:h-11; }
+@utility btn-primary { @apply btn bg-lime text-lime-ink hover:bg-lime-strong; }
+@utility btn-secondary { @apply btn border border-line bg-surface-2 font-medium text-fg hover:border-line-strong hover:bg-surface-3; }
+@utility btn-ghost { @apply btn font-medium text-muted hover:bg-surface-2 hover:text-fg; }
+@utility btn-danger { @apply btn border border-neg/30 bg-neg-soft font-medium text-neg hover:bg-neg/20; }
+@utility btn-sm { @apply h-10 rounded-lg px-3.5 text-sm sm:h-9 sm:px-3; }
+@utility chip { @apply inline-flex h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm text-muted transition hover:text-fg sm:h-9 sm:px-3.5; }
+@utility eyebrow { @apply text-[11.5px] font-semibold uppercase tracking-[0.1em] text-faint; }
+@utility skeleton { @apply relative overflow-hidden rounded-xl bg-surface-2; }
+
+textarea.input { height: auto; padding-top: 0.75rem; padding-bottom: 0.75rem; }
 select.input {
   appearance: none; padding-right: 2.25rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239a9aa2' stroke-width='2'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a3a3a3' stroke-width='2'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 0.75rem center;
 }
-.chip[data-active="true"], .chip:has(input:checked) { border-color: rgb(198 244 50 / 0.5); background: var(--color-lime-soft); color: var(--color-lime); }
+.chip[data-active="true"], .chip:has(input:checked) { border-color: rgb(166 255 0 / 0.55); background: var(--color-lime-soft); color: var(--color-lime); }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.04), transparent); animation: shimmer 1.4s infinite; }
 
-/* Dialog / bottom sheet */
+/* ---------- Bottom sheet / diálogo ---------- */
 dialog.sheet { margin: 0; max-height: none; max-width: none; width: 100vw; height: 100dvh; background: transparent; padding: 0; border: 0; color: var(--color-fg); overflow: hidden; }
 dialog.sheet::backdrop { background: rgb(0 0 0 / 0.72); backdrop-filter: blur(6px); }
 dialog.sheet[open] > div { animation: var(--animate-sheet); }
+/* Barra de ação fixa no rodapé de formulários longos dentro do sheet */
+.sheet-actions { position: sticky; bottom: 0; z-index: 5; margin: 0 -1.25rem; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--color-surface) 75%, transparent); }
+@media (min-width: 640px) { .sheet-actions { padding-bottom: 1rem; } }
 
-/* Barras de rolagem discretas */
-* { scrollbar-width: thin; scrollbar-color: #2a2a2e transparent; }
+/* ---------- Rolagem ---------- */
+* { scrollbar-width: thin; scrollbar-color: #2e2e2e transparent; }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Respeita a preferência do sistema por menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
 
 @media print {
   html, body { background: #fff !important; color: #000 !important; }

@@ -5,7 +5,7 @@ import { loadLedger } from "@/lib/data/ledger";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, CardHeader, Empty, Money, Notice, PageHeader, Progress, Stat } from "@/components/ui";
 import { Sheet } from "@/components/client";
-import { addMonths, daysInMonth, fmtMonth, monthEnd, monthStart, parts } from "@/lib/finance/dates";
+import { addMonths, daysInMonth, fmtMonth, monthEnd, monthStart, parts, cap } from "@/lib/finance/dates";
 import { summarize } from "@/lib/finance/ledger";
 import { average, budgetUsage, DEFAULT_THRESHOLDS, monthPaceEstimate } from "@/lib/finance/planning";
 import { toCents } from "@/lib/finance/money";
@@ -47,7 +47,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <PageHeader title="Planejamento" subtitle={`Alertas em ${thresholds.join("%, ")}% e ao ultrapassar — ajuste em Configurações.`}
         actions={<div className="flex items-center gap-1">
           <Link href={`?mes=${ym(addMonths(month, -1))}`} className="btn-secondary btn-sm px-2" aria-label="Mês anterior"><ChevronLeft size={16} /></Link>
-          <span className="min-w-36 text-center text-[14px] font-medium capitalize">{fmtMonth(month, true)}</span>
+          <span className="min-w-36 text-center text-[14px] font-medium">{cap(fmtMonth(month, true))}</span>
           <Link href={`?mes=${ym(addMonths(month, 1))}`} className="btn-secondary btn-sm px-2" aria-label="Próximo mês"><ChevronRight size={16} /></Link>
         </div>} />
 

@@ -78,3 +78,6 @@ export function isISODate(s: unknown): s is ISODate {
   const { y, m, d } = parts(s);
   return m >= 1 && m <= 12 && d >= 1 && d <= daysInMonth(y, m);
 }
+
+/** Primeira letra maiúscula ("novembro de 2026" → "Novembro de 2026"). */
+export const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);

@@ -3,7 +3,7 @@ import { ActionForm, Submit } from "@/components/client";
 import { saveCategory } from "@/app/actions/finance";
 import { GROUP_LABEL } from "@/lib/templates";
 
-const COLORS = ["", "#c6f432", "#8ab4ff", "#f5b83d", "#ff6b5e", "#b794f6", "#5eead4", "#f9a8d4", "#9a9aa2"];
+const COLORS = ["", "#a6ff00", "#8ab4ff", "#f5b83d", "#ff6b5e", "#b794f6", "#5eead4", "#f9a8d4", "#9a9aa2"];
 
 export function CategoryForm({ ws, kind, parents, c, business }: { ws: string; kind: "income" | "expense"; parents: { id: string; name: string }[]; c?: { id: string; name: string; grp: string; parentId: string | null; color: string | null }; business: boolean }) {
   const groups = kind === "income" ? ["revenue", "other"] : business ? ["cost", "fixed", "variable", "investment", "withdrawal", "personal", "other"] : ["fixed", "variable", "investment", "other"];

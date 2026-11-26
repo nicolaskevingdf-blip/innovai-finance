@@ -7,7 +7,7 @@ export { clsx as cx };
 
 export function Money({ c, signed, className, tone }: { c: number; signed?: boolean; className?: string; tone?: "auto" | "none" }) {
   const color = tone === "auto" ? (c > 0 ? "text-lime" : c < 0 ? "text-neg" : "") : "";
-  return <span className={clsx("num", color, className)}>{formatBRL(c, { signed })}</span>;
+  return <span className={clsx("num whitespace-nowrap", color, className)}>{formatBRL(c, { signed })}</span>;
 }
 
 export function Card({ children, className, as: As = "section" }: { children: ReactNode; className?: string; as?: "section" | "div" | "article" }) {
@@ -16,9 +16,9 @@ export function Card({ children, className, as: As = "section" }: { children: Re
 
 export function CardHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 px-5 pt-5">
+    <div className="flex items-start justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
+        <h2 className="text-[15px] font-semibold">{title}</h2>
         {subtitle && <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p>}
       </div>
       {action}
@@ -30,23 +30,46 @@ export function CardHeader({ title, subtitle, action }: { title: ReactNode; subt
 export function Help({ children }: { children: ReactNode }) {
   return (
     <details className="group relative inline-block align-middle">
-      <summary aria-label="O que é este indicador?" className="flex size-4 cursor-pointer list-none items-center justify-center rounded-full border border-line-strong text-[10px] text-faint hover:text-fg [&::-webkit-details-marker]:hidden">?</summary>
-      <div className="absolute left-1/2 z-30 mt-2 w-64 -translate-x-1/2 rounded-xl border border-line-strong bg-surface-3 p-3 text-[12.5px] font-normal normal-case leading-relaxed tracking-normal text-muted shadow-2xl">{children}</div>
+      <summary aria-label="O que é este indicador?" className="flex size-5 cursor-pointer sm:size-4 list-none items-center justify-center rounded-full border border-line-strong text-[10px] text-faint hover:text-fg [&::-webkit-details-marker]:hidden">?</summary>
+      <div className="fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 rounded-xl border border-line-strong bg-surface-2 p-4 text-[13.5px] font-normal normal-case leading-relaxed tracking-normal text-fg/85 shadow-2xl animate-fade-up sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:z-30 sm:mt-2 sm:w-64 sm:-translate-x-1/2 sm:p-3 sm:text-[12.5px]">{children}</div>
     </details>
   );
 }
 
-export function Stat({ label, value, help, sub, tone, size = "md", estimate }: { label: string; value: number; help?: ReactNode; sub?: ReactNode; tone?: "lime" | "neg" | "auto"; size?: "md" | "lg"; estimate?: boolean }) {
+export function Stat({ label, value, help, sub, tone, size = "md", estimate }: { label: string; value: number; help?: ReactNode; sub?: ReactNode; tone?: "lime" | "neg" | "auto"; size?: "sm" | "md" | "lg" | "xl"; estimate?: boolean }) {
   const color = tone === "lime" ? "text-lime" : tone === "neg" ? "text-neg" : tone === "auto" ? (value < 0 ? "text-neg" : "") : "";
+  const cls = { sm: "text-[clamp(14.5px,4.4vw,16px)] leading-6", md: "text-[19px] leading-7 sm:text-[20px]", lg: "text-[26px] leading-8 sm:text-[30px] sm:leading-9", xl: "text-[34px] leading-10 sm:text-[40px] sm:leading-[3rem]" }[size];
   return (
     <div className="min-w-0">
-      <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+      <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted sm:text-[13px]">
         <span className="leading-tight">{label}</span>
-        {estimate && <span className="rounded-md bg-surface-3 px-1.5 py-px text-[10.5px] font-medium text-faint">estimativa</span>}
+        {estimate && <span className="rounded-md bg-surface-2 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-faint">estimativa</span>}
         {help && <Help>{help}</Help>}
       </div>
-      <div className={clsx("num mt-1 truncate font-semibold tracking-tight", size === "lg" ? "text-[30px] leading-9 sm:text-[34px]" : "text-[20px] leading-7", color)}>{formatBRL(value)}</div>
-      {sub && <div className="mt-0.5 text-[12.5px] text-faint">{sub}</div>}
+      <div className={clsx("num mt-1 truncate font-semibold tracking-tight", cls, color)}>{formatBRL(value)}</div>
+      {sub && <div className="mt-0.5 text-[12px] text-faint">{sub}</div>}
+    </div>
+  );
+}
+
+/** Título de seção usado nos dashboards e listas. */
+export function SectionTitle({ title, action, className }: { title: string; action?: ReactNode; className?: string }) {
+  return (
+    <div className={clsx("mb-3 flex items-center justify-between gap-3", className)}>
+      <h2 className="text-[15px] font-semibold">{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+/** Indicador compacto com ícone — 2 por linha no celular. */
+export function MiniStat({ label, value, icon, tone, sub }: { label: string; value: number; icon?: ReactNode; tone?: "lime" | "neg" | "auto"; sub?: ReactNode }) {
+  const color = tone === "lime" ? "text-lime" : tone === "neg" ? "text-neg" : tone === "auto" && value < 0 ? "text-neg" : "";
+  return (
+    <div className="card min-w-0 p-4">
+      <div className="flex items-center gap-2 text-[12.5px] text-muted">{icon}<span className="truncate">{label}</span></div>
+      <div className={clsx("num mt-1.5 truncate text-[clamp(15px,4.6vw,18px)] font-semibold sm:text-[20px]", color)}>{formatBRL(value)}</div>
+      {sub && <div className="mt-0.5 truncate text-[11.5px] text-faint">{sub}</div>}
     </div>
   );
 }
@@ -70,11 +93,11 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: strin
   return (
     <header className="mb-5 flex flex-col gap-3 sm:mb-7 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
-        <h1 className="text-[24px] font-semibold tracking-tight sm:text-[28px]">{title}</h1>
-        {subtitle && <p className="mt-1 text-[14px] text-muted">{subtitle}</p>}
+        {eyebrow && <div className="eyebrow mb-1.5">{eyebrow}</div>}
+        <h1 className="text-[22px] font-bold leading-tight sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1 text-[13.5px] leading-relaxed text-muted sm:text-[14px]">{subtitle}</p>}
       </div>
-      {actions && <div className="no-print flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="no-print no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0">{actions}</div>}
     </header>
   );
 }
@@ -114,7 +137,7 @@ export function Field({ label, children, hint, error, className }: { label: stri
 }
 
 export function Row({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx("flex items-center gap-3 border-t border-line px-5 py-3.5 first:border-t-0", className)}>{children}</div>;
+  return <div className={clsx("flex items-center gap-3 border-t border-line px-4 py-3.5 first:border-t-0 sm:px-5", className)}>{children}</div>;
 }
 
 export function Notice({ children, tone = "info" }: { children: ReactNode; tone?: "info" | "warn" | "lime" }) {

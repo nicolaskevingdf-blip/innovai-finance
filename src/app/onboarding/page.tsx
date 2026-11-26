@@ -14,7 +14,7 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
   const kind = sp.tipo === "empresa" ? "business" : sp.tipo === "pessoal" ? "personal" : null;
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col px-5 py-8">
-      <div className="mb-10 flex items-center justify-between"><Logo className="text-lg" />{all.length > 0 && <a href="/inicio" className="text-[13px] text-muted">Cancelar</a>}</div>
+      <div className="mb-10 flex items-center justify-between"><Logo size="sm" />{all.length > 0 && <a href="/inicio" className="text-[13px] text-muted">Cancelar</a>}</div>
       <Wizard initialKind={kind} fullName={profile?.full_name ?? ""} first={all.length === 0} hasPersonal={all.some((w) => w.kind === "personal")} />
     </main>
   );

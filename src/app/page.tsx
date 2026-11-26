@@ -14,15 +14,15 @@ export default async function Landing() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-6xl flex-col px-5 sm:px-8">
       <header className="flex h-20 items-center justify-between">
-        <Logo className="text-xl" />
+        <Logo size="sm" />
         <nav className="flex items-center gap-2">
           <Link href="/entrar" className="btn-ghost btn-sm">Entrar</Link>
           <Link href="/cadastro" className="btn-primary btn-sm">Criar conta</Link>
         </nav>
       </header>
       <section className="flex flex-1 flex-col justify-center py-16 sm:py-24">
-        <div className="eyebrow mb-4 text-lime">Gestão financeira inteligente</div>
-        <h1 className="max-w-3xl text-[40px] font-semibold leading-[1.05] tracking-tight sm:text-[64px]">Seus números, com clareza para decidir.</h1>
+        <div className="eyebrow mb-4 !text-lime">Gestão financeira inteligente</div>
+        <h1 className="max-w-3xl text-[36px] font-extrabold leading-[1.05] sm:text-[64px]">Seus números, com <span className="text-lime">clareza</span> para decidir.</h1>
         <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted">A Innovai transforma seus lançamentos em entendimento: o que entrou, o que já está comprometido e o que realmente está disponível — para você e para o seu negócio, em ambientes separados.</p>
         <div className="mt-9 flex flex-wrap gap-3">
           <Link href="/cadastro" className="btn-primary h-12 px-6">Começar agora <ArrowRight size={18} /></Link>
@@ -44,7 +44,7 @@ export default async function Landing() {
         </div>
       </section>
       <footer className="flex flex-wrap gap-4 border-t border-line py-6 text-[13px] text-faint">
-        <span>© {new Date().getFullYear()} Innovai</span>
+        <span>© {new Date().getFullYear()} Innovai · Tecnologia que facilita o seu negócio.</span>
         <Link href="/privacidade" className="hover:text-fg">Privacidade</Link>
         <Link href="/termos" className="hover:text-fg">Termos</Link>
       </footer>

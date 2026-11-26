@@ -1,12 +1,12 @@
-export type NavItem = { href: string; label: string; icon: string };
+export type NavItem = { href: string; label: string; icon: string; short?: string };
 
 export function navFor(kind: string, base: string) {
   const personal = kind !== "business";
   const primary: NavItem[] = personal
     ? [
         { href: base, label: "Início", icon: "home" },
-        { href: `${base}/movimentacoes`, label: "Movimentações", icon: "list" },
-        { href: `${base}/planejamento`, label: "Planejamento", icon: "target" },
+        { href: `${base}/movimentacoes`, label: "Movimentações", short: "Extrato", icon: "list" },
+        { href: `${base}/planejamento`, label: "Planejamento", short: "Planejar", icon: "target" },
         { href: `${base}/metas`, label: "Metas", icon: "flag" },
         { href: `${base}/inteligencia`, label: "Inteligência", icon: "sparkles" },
       ]

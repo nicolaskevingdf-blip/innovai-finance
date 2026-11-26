@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, CardHeader, Empty, Money, Notice, PageHeader, Progress, Stat } from "@/components/ui";
 import { Sheet } from "@/components/client";
 import { toCents, formatBRL } from "@/lib/finance/money";
-import { addMonths, fmtDate, fmtMonth, todayISO } from "@/lib/finance/dates";
+import { addMonths, fmtDate, fmtMonth, todayISO, cap } from "@/lib/finance/dates";
 import { monthsToPayoff, payoffOrder } from "@/lib/finance/planning";
 import { loadRefs } from "../refs";
 import { DebtForm, DebtPaymentForm, type DebtView } from "./forms";
@@ -61,7 +61,7 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
               <div className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
                 <div><div className="text-faint">Parcela</div>{v.installment ? <Money c={v.installment} /> : "—"}{v.dueDay ? <span className="text-faint"> · dia {v.dueDay}</span> : ""}</div>
                 <div><div className="text-faint">Juros</div>{v.rate !== null ? `${v.rate.toLocaleString("pt-BR")}% a.m.` : <span className="text-muted">não informado</span>}</div>
-                <div className="col-span-2"><div className="text-faint">Previsão de quitação</div>{remaining === 0 ? "Quitada" : months === null ? <span className="text-muted">{v.installment ? "A parcela não cobre os juros informados" : "Informe o valor da parcela"}</span> : <span className="capitalize">{fmtMonth(addMonths(today, months), true)} ({months} {months === 1 ? "mês" : "meses"}{v.rate ? ", com juros informados" : ""})</span>}</div>
+                <div className="col-span-2"><div className="text-faint">Previsão de quitação</div>{remaining === 0 ? "Quitada" : months === null ? <span className="text-muted">{v.installment ? "A parcela não cobre os juros informados" : "Informe o valor da parcela"}</span> : <span>{cap(fmtMonth(addMonths(today, months), true))} ({months} {months === 1 ? "mês" : "meses"}{v.rate ? ", com juros informados" : ""})</span>}</div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {ctx.canWrite && remaining > 0 && <Sheet title={`Pagamento — ${v.creditor}`} trigger={<button className="btn-primary btn-sm">Registrar pagamento</button>}><DebtPaymentForm ws={ws} debtId={v.id} installment={v.installment} accounts={refs.accounts} today={today} /></Sheet>}

@@ -16,7 +16,7 @@ export default async function Page({ params }: { params: Promise<{ token: string
   const accept = async () => { "use server"; await acceptInvite(token); };
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 text-center">
-      <Logo className="mb-10 text-xl" />
+      <Logo className="mb-10" />
       {valid ? (<>
         <h1 className="text-2xl font-semibold">Você foi convidado para “{inv.workspace_name}”</h1>
         <p className="mt-2 text-muted">Você terá acesso somente a este ambiente.</p>

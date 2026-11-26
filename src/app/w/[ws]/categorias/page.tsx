@@ -44,10 +44,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                   <div key={p.id} className="border-t border-line px-5 py-3 first:border-t-0">
                     <div className="flex items-center gap-3">
                       <span className="size-2.5 shrink-0 rounded-full" style={{ background: p.color ?? "var(--color-line-strong)" }} />
-                      <span className="flex-1 text-[14.5px]">{p.name}</span>
+                      <span className="min-w-0 flex-1 truncate text-[14.5px]">{p.name}</span>
                       {used > 0 && <span className="hidden text-[12.5px] text-faint sm:inline">3 meses: <Money c={used} /></span>}
-                      {ctx.canWrite && <Sheet title="Editar categoria" trigger={<button className="btn-ghost btn-sm">Editar</button>}><CategoryForm ws={ws} kind={kind} parents={parents} business={business} c={p} /></Sheet>}
-                      {ctx.canWrite && <form action={removeCategory}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={p.id} /><ConfirmSubmit message="Remover esta categoria? Se houver lançamentos ou subcategorias, ela será arquivada e o histórico preservado." className="btn-ghost btn-sm text-faint">Remover</ConfirmSubmit></form>}
+                      {ctx.canWrite && <Sheet title="Editar categoria" trigger={<button className="btn-ghost btn-sm shrink-0 px-2.5">Editar</button>}><CategoryForm ws={ws} kind={kind} parents={parents} business={business} c={p} /></Sheet>}
+                      {ctx.canWrite && <form action={removeCategory}><input type="hidden" name="ws" value={ws} /><input type="hidden" name="id" value={p.id} /><ConfirmSubmit message="Remover esta categoria? Se houver lançamentos ou subcategorias, ela será arquivada e o histórico preservado." className="btn-ghost btn-sm shrink-0 px-2.5 text-faint">Remover</ConfirmSubmit></form>}
                     </div>
                     {kids.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5 pl-5">{kids.map((k) => (
                       <Sheet key={k.id} title="Editar subcategoria" trigger={<button className="chip h-7 text-[12.5px]">{k.name}</button>}>

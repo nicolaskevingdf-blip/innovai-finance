@@ -17,7 +17,7 @@ export default async function Page() {
   const [{ data: profile }, all] = await Promise.all([sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle(), listWorkspaces()]);
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
-      <div className="mb-8 flex items-center justify-between"><Link href="/inicio" className="btn-ghost btn-sm -ml-3"><ArrowLeft size={16} /> Voltar</Link><Logo className="text-lg" /></div>
+      <div className="mb-8 flex items-center justify-between"><Link href="/inicio" className="btn-ghost btn-sm -ml-3"><ArrowLeft size={16} /> Voltar</Link><Logo size="sm" /></div>
       <PageHeader title="Minha conta" subtitle={user.email} />
       <div className="space-y-4">
         <Card className="p-5"><div className="eyebrow mb-3">Perfil</div><ProfileForm name={profile?.full_name ?? ""} /></Card>

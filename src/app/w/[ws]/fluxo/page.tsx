@@ -33,7 +33,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {(["day", "week", "month"] as const).map((x) => <a key={x} href={qs({ g: x, ...(custom ? { ate: to } : {}) })} data-active={g === x} className="chip">{x === "day" ? "Diário" : x === "week" ? "Semanal" : "Mensal"}</a>)}
         <form method="get" className="flex items-end gap-2"><input type="hidden" name="g" value={g} /><input type="date" name="ate" min={addDays(L.today, 1)} defaultValue={custom ? to : ""} className="input h-9 w-40 text-[13px]" /><button className="btn-secondary btn-sm">Período</button></form>
       </div>
-      <Card className="grid grid-cols-2 gap-x-4 gap-y-5 p-5 sm:grid-cols-5">
+      <Card className="grid grid-cols-2 gap-x-4 gap-y-5 p-4 sm:grid-cols-5 sm:p-5">
         <Stat label="Saldo inicial (hoje)" value={start} />
         <Stat label="Entradas previstas" value={inflow} tone="lime" />
         <Stat label="Saídas previstas" value={outflow} />
@@ -47,9 +47,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <Card className="mt-4">
         <CardHeader title={g === "day" ? "Por dia" : g === "week" ? "Por semana" : "Por mês"} />
         <div className="overflow-x-auto px-2 pb-3 pt-2"><table className="w-full text-[13.5px]">
-          <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">{g === "day" ? "Dia" : "Início"}</th><th className="px-3 py-2 text-right font-normal">Saldo inicial</th><th className="px-3 py-2 text-right font-normal">Entradas</th><th className="px-3 py-2 text-right font-normal">Saídas</th><th className="px-3 py-2 text-right font-normal">Saldo final</th></tr></thead>
+          <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">{g === "day" ? "Dia" : "Início"}</th><th className="hidden px-3 py-2 text-right font-normal sm:table-cell">Saldo inicial</th><th className="px-3 py-2 text-right font-normal">Entradas</th><th className="px-3 py-2 text-right font-normal">Saídas</th><th className="px-3 py-2 text-right font-normal">Saldo final</th></tr></thead>
           <tbody>{r.buckets.filter((b) => g !== "day" || b.inflow || b.outflow || b.start === L.today).map((b) => (
-            <tr key={b.start} className="border-t border-line"><td className="px-3 py-2.5">{fmtDate(b.start)} {b.belowMin && <Badge tone="warn">abaixo do mínimo</Badge>}</td><td className="num px-3 py-2.5 text-right text-muted"><Money c={b.opening} /></td><td className="num px-3 py-2.5 text-right text-lime">{b.inflow ? <Money c={b.inflow} /> : "—"}</td><td className="num px-3 py-2.5 text-right">{b.outflow ? <Money c={-b.outflow} /> : "—"}</td><td className="num px-3 py-2.5 text-right font-medium"><Money c={b.closing} tone="auto" /></td></tr>
+            <tr key={b.start} className="border-t border-line"><td className="px-3 py-2.5">{fmtDayMonth(b.start)} {b.belowMin && <span className="ml-1 inline-block size-2 rounded-full bg-warn align-middle" title="Abaixo do caixa mínimo" />}</td><td className="num hidden px-3 py-2.5 text-right text-muted sm:table-cell"><Money c={b.opening} /></td><td className="num px-3 py-2.5 text-right text-lime">{b.inflow ? <Money c={b.inflow} /> : "—"}</td><td className="num px-3 py-2.5 text-right">{b.outflow ? <Money c={-b.outflow} /> : "—"}</td><td className="num px-3 py-2.5 text-right font-medium"><Money c={b.closing} tone="auto" /></td></tr>
           ))}</tbody>
         </table></div>
       </Card>

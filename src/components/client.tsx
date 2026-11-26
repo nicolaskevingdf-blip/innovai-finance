@@ -22,13 +22,15 @@ export function Sheet({ trigger, title, children, wide, defaultOpen, onClose }: 
     <>
       {trigger && <span onClick={() => setOpen(true)} className="contents">{trigger}</span>}
       <dialog ref={ref} className="sheet" onClose={close} onClick={(e) => { if (e.target === ref.current) close(); }}>
-        <div className={clsx("fixed inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto rounded-t-[1.6rem] border border-line-strong bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[88dvh] sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.4rem]", wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-5 py-4 backdrop-blur">
-            <div className="mx-auto mb-1 h-1 w-10 rounded-full bg-line-strong sm:hidden absolute left-1/2 top-1.5 -translate-x-1/2" />
-            <h2 className="text-[16px] font-semibold">{title}</h2>
-            <button type="button" onClick={close} className="btn-ghost btn-sm -mr-2" aria-label="Fechar"><X size={18} /></button>
+        <div role="document" className={clsx("fixed inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-[1.75rem] border-t border-line-strong bg-surface sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[88dvh] sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.5rem] sm:border sm:pb-0", wide ? "sm:max-w-2xl" : "sm:max-w-lg")}>
+          <div className="sticky top-0 z-10 border-b border-line bg-surface/95 px-5 pb-3 pt-2.5 backdrop-blur sm:pt-4">
+            <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-line-strong sm:hidden" />
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="min-w-0 truncate text-[16.5px] font-semibold">{title}</h2>
+              <button type="button" onClick={close} className="btn-ghost size-10 shrink-0 rounded-full p-0 sm:size-9" aria-label="Fechar"><X size={19} /></button>
+            </div>
           </div>
-          <div className="px-5 pt-4">{open && <SheetCtx.Provider value={{ close }}>{children}</SheetCtx.Provider>}</div>
+          <div className="px-5 pb-5 pt-4">{open && <SheetCtx.Provider value={{ close }}>{children}</SheetCtx.Provider>}</div>
         </div>
       </dialog>
     </>
@@ -37,13 +39,16 @@ export function Sheet({ trigger, title, children, wide, defaultOpen, onClose }: 
 
 const PendingCtx = createContext(false);
 
-export function Submit({ children, className, pendingText = "Salvando…" }: { children: ReactNode; className?: string; pendingText?: string }) {
+export function Submit({ children, className, pendingText = "Salvando…", inline }: { children: ReactNode; className?: string; pendingText?: string; inline?: boolean }) {
   const pending = useContext(PendingCtx);
-  return (
+  const inSheet = useContext(SheetCtx) !== null;
+  const btn = (
     <button type="submit" disabled={pending} className={clsx("btn-primary", className)}>
       {pending ? <><Loader2 size={16} className="animate-spin" /> {pendingText}</> : children}
     </button>
   );
+  // Dentro de um sheet, o botão principal fica fixo no rodapé (sempre visível, inclusive com o teclado aberto)
+  return inSheet && !inline ? <div className="sheet-actions">{btn}</div> : btn;
 }
 
 /** Formulário com feedback de erro/sucesso. Fecha o sheet ao concluir com sucesso. */
@@ -51,7 +56,9 @@ export function ActionForm({ action, children, className, keepOpen, onDone, rese
   const [state, formAction, pending] = useActionState(action, null);
   const sheet = useSheet();
   const ref = useRef<HTMLFormElement>(null);
+  const feedback = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if (state?.error || state?.message) feedback.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     if (state?.ok) {
       onDone?.(state);
       if (resetOnSuccess) ref.current?.reset();
@@ -63,8 +70,9 @@ export function ActionForm({ action, children, className, keepOpen, onDone, rese
     <form ref={ref} className={clsx("space-y-4", className)} noValidate
       onSubmit={(e) => { e.preventDefault(); if (pending) return; const fd = new FormData(e.currentTarget); startTransition(() => formAction(fd)); }}>
       <PendingCtx.Provider value={pending}>{typeof children === "function" ? children(state) : children}</PendingCtx.Provider>
+      <div ref={feedback} />
       {state?.error && <p role="alert" className="rounded-xl border border-neg/25 bg-neg-soft px-3.5 py-2.5 text-[13.5px] text-neg">{state.error}</p>}
-      {state?.ok && state.message && <p role="status" className="flex items-center gap-2 rounded-xl border border-lime/25 bg-lime-soft px-3.5 py-2.5 text-[13.5px] text-lime"><Check size={15} /> {state.message}</p>}
+      {state?.ok && state.message && <p role="status" className="flex animate-[pop_0.4s_ease-out] items-center gap-2 rounded-xl border border-lime/25 bg-lime-soft px-3.5 py-2.5 text-[13.5px] text-lime"><Check size={15} className="shrink-0" /> {state.message}</p>}
     </form>
   );
 }

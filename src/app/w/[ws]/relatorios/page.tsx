@@ -64,13 +64,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {rows.length ? (
           <div className="overflow-x-auto px-2 pb-3 pt-2">
             <table className="w-full text-[13.5px]">
-              <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">Categoria</th><th className="px-3 py-2 text-right font-normal">Valor</th><th className="px-3 py-2 text-right font-normal">%</th><th className="px-3 py-2 text-right font-normal">Anterior</th><th className="px-3 py-2 text-right font-normal">Var.</th></tr></thead>
+              <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">Categoria</th><th className="px-3 py-2 text-right font-normal">Valor</th><th className="hidden px-3 py-2 text-right font-normal sm:table-cell">%</th><th className="hidden px-3 py-2 text-right font-normal sm:table-cell">Anterior</th><th className="px-3 py-2 text-right font-normal">Var.</th></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.id ?? "none"} className="border-t border-line">
-                  <td className="px-3 py-2.5"><div>{r.name}</div><div className="mt-1 h-1 rounded-full bg-surface-3"><div className="h-1 rounded-full bg-lime/70" style={{ width: `${total ? Math.min(100, (r.v / total) * 100) : 0}%` }} /></div></td>
+                  <td className="max-w-0 px-3 py-2.5"><div className="truncate">{r.name}</div><div className="mt-1 h-1 rounded-full bg-surface-3"><div className="h-1 rounded-full bg-lime/70" style={{ width: `${total ? Math.min(100, (r.v / total) * 100) : 0}%` }} /></div></td>
                   <td className="num px-3 py-2.5 text-right"><Money c={r.v} /></td>
-                  <td className="num px-3 py-2.5 text-right text-muted">{total ? Math.round((r.v / total) * 100) : 0}%</td>
-                  <td className="num px-3 py-2.5 text-right text-muted"><Money c={r.p} /></td>
+                  <td className="num hidden px-3 py-2.5 text-right text-muted sm:table-cell">{total ? Math.round((r.v / total) * 100) : 0}%</td>
+                  <td className="num hidden px-3 py-2.5 text-right text-muted sm:table-cell"><Money c={r.p} /></td>
                   <td className="num px-3 py-2.5 text-right"><Delta cur={r.v} prev={r.p} inverse={inverse} /></td>
                 </tr>))}</tbody>
             </table>
@@ -86,7 +86,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     const exp = (x: typeof g) => x.fixed + x.variable + x.other + x.personal + x.uncategorized;
     const cash = cashMovements(L.txs, from, to);
     const line = (label: string, c: number, p: number, opts: { strong?: boolean; neg?: boolean; inverse?: boolean } = {}) => (
-      <tr className="border-t border-line"><td className={`px-4 py-2.5 ${opts.strong ? "font-semibold" : "text-muted"}`}>{label}</td><td className={`num px-4 py-2.5 text-right ${opts.strong ? "font-semibold" : ""}`}><Money c={opts.neg ? -c : c} tone={opts.strong ? "auto" : "none"} /></td><td className="num px-4 py-2.5 text-right text-muted"><Money c={opts.neg ? -p : p} /></td><td className="num px-4 py-2.5 text-right"><Delta cur={c} prev={p} inverse={opts.inverse} /></td></tr>
+      <tr className="border-t border-line"><td className={`px-3 py-2.5 text-[13px] sm:px-4 sm:text-[14px] ${opts.strong ? "font-semibold" : "text-muted"}`}>{label}</td><td className={`num px-4 py-2.5 text-right ${opts.strong ? "font-semibold" : ""}`}><Money c={opts.neg ? -c : c} tone={opts.strong ? "auto" : "none"} /></td><td className="num hidden px-4 py-2.5 text-right text-muted sm:table-cell"><Money c={opts.neg ? -p : p} /></td><td className="num px-4 py-2.5 text-right"><Delta cur={c} prev={p} inverse={opts.inverse} /></td></tr>
     );
     const pay = obligationTotals(L.txs, "expense", L.today), rec = obligationTotals(L.txs, "income", L.today);
     const byContact = (k: "income" | "expense") => { const m = new Map<string, number>(); for (const t of L.txs) if (t.type === k && t.contactId && t.status !== "canceled" && t.competenceDate >= from && t.competenceDate <= to) m.set(t.contactId, (m.get(t.contactId) ?? 0) + t.amount); return m; };
@@ -101,7 +101,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <Card className="mt-4">
           <CardHeader title="Resultado gerencial (competência)" subtitle="Estimativa baseada nos lançamentos e nos grupos das categorias — não substitui a contabilidade oficial" />
           <div className="overflow-x-auto px-1 pb-3 pt-2"><table className="w-full text-[14px]">
-            <thead><tr className="text-left text-[12px] text-faint"><th className="px-4 py-2 font-normal" /><th className="px-4 py-2 text-right font-normal">Período</th><th className="px-4 py-2 text-right font-normal">Anterior</th><th className="px-4 py-2 text-right font-normal">Var.</th></tr></thead>
+            <thead><tr className="text-left text-[12px] text-faint"><th className="px-4 py-2 font-normal" /><th className="px-4 py-2 text-right font-normal">Período</th><th className="hidden px-4 py-2 text-right font-normal sm:table-cell">Anterior</th><th className="px-4 py-2 text-right font-normal">Var.</th></tr></thead>
             <tbody>
               {line("Faturamento registrado", cur.income, prev.income)}
               {line("(−) Custos operacionais", g.cost, gp.cost, { neg: true, inverse: true })}
@@ -142,13 +142,17 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   return (
     <div className="print-area">
       <PageHeader title="Relatórios" subtitle={`${fmtDate(from)} a ${fmtDate(to)} · comparado a ${fmtDate(pFrom)}–${fmtDate(pTo)}`} actions={<><a href={exportUrl} className="btn-secondary btn-sm">Exportar Excel (CSV)</a><PrintButton /></>} />
-      <div className="no-print mb-5 flex flex-wrap items-end gap-2">
+      <div className="no-print mb-5 flex flex-wrap items-end gap-2 [&>a]:shrink-0">
         {presets.map(([k, l]) => <a key={k} href={`?p=${k}`} data-active={preset === k} className="chip">{l}</a>)}
-        <form method="get" className="flex items-end gap-2"><input type="date" name="de" defaultValue={from} className="input h-9 w-40 text-[13px]" /><input type="date" name="ate" defaultValue={to} className="input h-9 w-40 text-[13px]" /><button className="btn-secondary btn-sm">Aplicar</button></form>
+        <form method="get" className="flex w-full flex-wrap items-end gap-2 sm:w-auto"><input type="date" name="de" defaultValue={from} aria-label="De" className="input h-10 min-w-[8.5rem] flex-1 text-[14px] sm:h-9 sm:w-40 sm:flex-none sm:text-[13px]" /><input type="date" name="ate" defaultValue={to} aria-label="Até" className="input h-10 min-w-[8.5rem] flex-1 text-[14px] sm:h-9 sm:w-40 sm:flex-none sm:text-[13px]" /><button className="btn-secondary btn-sm">Aplicar</button></form>
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      {/* Resumo: linhas compactas no celular, cartões lado a lado a partir do tablet */}
+      <div className="card divide-y divide-line sm:grid sm:grid-cols-3 sm:divide-y-0 sm:border-0 sm:bg-transparent sm:gap-4">
         {[["Receitas" + (kind === "business" ? " / faturamento" : ""), cur.income, prev.income, false], ["Despesas", cur.expense, prev.expense, true], ["Resultado", cur.net, prev.net, false]].map(([l, c, p, inv]) => (
-          <Card key={l as string} className="p-4 sm:p-5"><div className="text-[12.5px] text-muted sm:text-[13px]">{l as string}</div><Money c={c as number} tone={l === "Resultado" ? "auto" : "none"} className="mt-1 block text-[17px] font-semibold sm:text-[22px]" /><div className="mt-1 text-[12px]"><Delta cur={c as number} prev={p as number} inverse={inv as boolean} /> <span className="text-faint">vs anterior</span></div></Card>
+          <div key={l as string} className="flex items-center justify-between gap-3 px-4 py-3 sm:card sm:block sm:p-5">
+            <div className="min-w-0"><div className="text-[13px] text-muted">{l as string}</div><div className="mt-0.5 text-[12px]"><Delta cur={c as number} prev={p as number} inverse={inv as boolean} /> <span className="text-faint">vs anterior</span></div></div>
+            <Money c={c as number} tone={l === "Resultado" ? "auto" : "none"} className="shrink-0 text-[17px] font-semibold sm:mt-1 sm:block sm:text-[22px]" />
+          </div>
         ))}
       </div>
       <Card className="mt-4"><CardHeader title="Evolução mensal" subtitle="Receitas e despesas por competência (inclui pendentes)" /><div className="px-3 pb-4 pt-3"><MonthlyBars data={series} /></div></Card>

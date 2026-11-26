@@ -4,7 +4,7 @@ import { loadLedger } from "@/lib/data/ledger";
 import { loadGoals } from "@/lib/data/insights";
 import { Badge, Card, Empty, Money, Notice, PageHeader, Progress } from "@/components/ui";
 import { ConfirmSubmit, Sheet } from "@/components/client";
-import { addMonths, fmtDate, fmtMonth, monthEnd, monthStart } from "@/lib/finance/dates";
+import { addMonths, fmtDate, fmtMonth, monthEnd, monthStart, cap } from "@/lib/finance/dates";
 import { summarize } from "@/lib/finance/ledger";
 import { formatBRL } from "@/lib/finance/money";
 import { archiveGoal } from "@/app/actions/finance";
@@ -46,7 +46,7 @@ export default async function Page({ params }: { params: Promise<{ ws: string }>
                   <div><div className="text-faint">Falta</div><Money c={p.remaining} /></div>
                   <div><div className="text-faint">Necessário por mês</div>{p.monthlyNeeded !== null ? <Money c={p.monthlyNeeded} /> : <span className="text-muted">defina um prazo</span>}</div>
                   <div><div className="text-faint">Aporte médio recente</div>{p.avgMonthlyContribution !== null ? <Money c={p.avgMonthlyContribution} /> : <span className="text-muted">poucos aportes</span>}</div>
-                  <div><div className="text-faint">Conclusão projetada</div><span className="capitalize">{p.projectedDate ? fmtMonth(p.projectedDate, true) : "—"}</span></div>
+                  <div><div className="text-faint">Conclusão projetada</div><span>{p.projectedDate ? cap(fmtMonth(p.projectedDate, true)) : "—"}</span></div>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {ctx.canWrite && <Sheet title={`Aporte em ${g.name}`} trigger={<button className="btn-primary btn-sm">Registrar aporte</button>}>

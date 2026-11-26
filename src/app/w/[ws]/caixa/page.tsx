@@ -52,7 +52,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <button className="btn-secondary btn-sm h-10">Ver</button>
       </form>
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5 lg:col-span-2">
+        <Card className="p-4 sm:p-5 lg:col-span-2">
           <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
             <Stat label="Saldo inicial" value={opening} help="Saldo da conta caixa no início do dia, calculado pelos lançamentos." />
             <Stat label="Entradas" value={cashIn} tone="lime" />
@@ -77,8 +77,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         <CardHeader title="Histórico de fechamentos" />
         {history?.length ? (
           <div className="overflow-x-auto px-2 pb-3 pt-2"><table className="w-full text-[13.5px]">
-            <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">Dia</th><th className="px-3 py-2 text-right font-normal">Esperado</th><th className="px-3 py-2 text-right font-normal">Contado</th><th className="px-3 py-2 text-right font-normal">Diferença</th><th className="px-3 py-2 font-normal">Justificativa</th></tr></thead>
-            <tbody>{history.map((h) => <tr key={h.id} className="border-t border-line"><td className="px-3 py-2.5">{fmtDate(h.date)}</td><td className="num px-3 py-2.5 text-right"><Money c={toCents(h.expected_amount)} /></td><td className="num px-3 py-2.5 text-right"><Money c={toCents(h.counted_amount)} /></td><td className="num px-3 py-2.5 text-right"><Money c={toCents(h.difference)} tone="auto" /></td><td className="px-3 py-2.5 text-muted">{h.justification ?? "—"}</td></tr>)}</tbody>
+            <thead><tr className="text-left text-[12px] text-faint"><th className="px-3 py-2 font-normal">Dia</th><th className="hidden px-3 py-2 text-right font-normal sm:table-cell">Esperado</th><th className="px-3 py-2 text-right font-normal">Contado</th><th className="px-3 py-2 text-right font-normal">Diferença</th><th className="hidden px-3 py-2 font-normal md:table-cell">Justificativa</th></tr></thead>
+            <tbody>{history.map((h) => <tr key={h.id} className="border-t border-line"><td className="px-3 py-2.5">{fmtDate(h.date)}{h.justification && <div className="text-[12px] text-faint md:hidden">{h.justification}</div>}</td><td className="num hidden px-3 py-2.5 text-right sm:table-cell"><Money c={toCents(h.expected_amount)} /></td><td className="num px-3 py-2.5 text-right"><Money c={toCents(h.counted_amount)} /></td><td className="num px-3 py-2.5 text-right"><Money c={toCents(h.difference)} tone="auto" /></td><td className="hidden px-3 py-2.5 text-muted md:table-cell">{h.justification ?? "—"}</td></tr>)}</tbody>
           </table></div>
         ) : <Empty title="Nenhum fechamento ainda" />}
       </Card>
